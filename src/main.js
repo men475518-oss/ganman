@@ -140,6 +140,15 @@
      起動
      ====================================================================== */
   function boot() {
+    // 埋め込み先に viewport メタが無い場合（別ページに差し込まれた時など）は
+    // 自前で挿入する。これが無いと端末が仮想980px幅で描画してしまう
+    if (!document.querySelector('meta[name="viewport"]')) {
+      var mv = document.createElement('meta');
+      mv.name = 'viewport';
+      mv.content = 'width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover';
+      document.head.appendChild(mv);
+    }
+
     var canvas = document.getElementById('screen');
     G.gfx.init(canvas);
     G.sprites.build();

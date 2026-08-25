@@ -1,16 +1,12 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<!-- GANMAN : single-file build. tools/build.js が index.html から生成 -->
-<meta charset="utf-8">
-<title>GANMAN - ロックマン風アクション</title>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#000000">
+<title>GANMAN</title>
 <style>
-  /* ---- 全体：スマホで余計なスクロール/選択/ハイライトを完全に殺す ---- */
+/* ==========================================================================
+   Artifact 版のスタイル。
+   これは「意図的に単一テーマ」のページ：8bit機のブラウン管画面そのものなので、
+   閲覧者のライト/ダーク設定に関わらず黒地で描画する。
+   ただし背景色は必ず明示し、ホスト側の地色を借りないようにしている。
+   ========================================================================== */
+/* ---- 全体：スマホで余計なスクロール/選択/ハイライトを完全に殺す ---- */
   * { margin:0; padding:0; box-sizing:border-box; }
   html, body {
     width:100%; height:100%; overflow:hidden; background:#000;
@@ -55,10 +51,12 @@
   #boot .tap  { margin-top:26px; font-size:14px; letter-spacing:3px; animation:blink 1s steps(2,end) infinite; }
   #boot .note { margin-top:14px; font-size:11px; color:#7C88A0; line-height:1.9; }
   @keyframes blink { 50% { opacity:0 } }
+
+/* Artifact のラッパー内でも全画面になるように念のため上書き */
+html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; }
 </style>
-</head>
-<body>
-  <canvas id="screen"></canvas>
+
+<canvas id="screen"></canvas>
 
   <div id="rotate">
     <div class="ico">📱</div>
@@ -72,8 +70,8 @@
     <div class="note">タップで起動します<br>（サウンドを有効化）</div>
   </div>
 
-<!-- ================= エンジン ================= -->
 <script>
+
 /* ===== src/core/util.js ===== */
 /* =========================================================================
    util.js  --  共通ユーティリティ
@@ -161,8 +159,7 @@ G.util = (function () {
   };
 })();
 
-</script>
-<script>
+
 /* ===== src/core/gfx.js ===== */
 /* =========================================================================
    gfx.js  --  描画レイヤ
@@ -548,8 +545,7 @@ G.gfx = (function () {
   };
 })();
 
-</script>
-<script>
+
 /* ===== src/core/input.js ===== */
 /* =========================================================================
    input.js  --  入力（タッチ最優先／キーボードは開発&PC用のおまけ）
@@ -844,8 +840,7 @@ G.input = (function () {
   return api;
 })();
 
-</script>
-<script>
+
 /* ===== src/core/audio.js ===== */
 /* =========================================================================
    audio.js  --  効果音（WebAudio によるファミコン風シンセ）
@@ -1114,8 +1109,7 @@ G.audio = (function () {
   };
 })();
 
-</script>
-<script>
+
 /* ===== src/core/music.js ===== */
 /* =========================================================================
    music.js  --  BGM（チップチューン・シーケンサ）
@@ -1508,8 +1502,7 @@ G.music = (function () {
   };
 })();
 
-</script>
-<script>
+
 /* ===== src/core/fx.js ===== */
 /* =========================================================================
    fx.js  --  演出（パーティクル／画面シェイク／フラッシュ／スローモー）
@@ -1853,9 +1846,7 @@ G.fx = (function () {
   return api;
 })();
 
-</script>
-<!-- ================= ゲーム部品 ================= -->
-<script>
+
 /* ===== src/game/sprites.js ===== */
 /* =========================================================================
    sprites.js  --  ドット絵の定義と生成
@@ -2349,8 +2340,7 @@ G.sprites = (function () {
   };
 })();
 
-</script>
-<script>
+
 /* ===== src/game/tiles.js ===== */
 /* =========================================================================
    tiles.js  --  タイルマップ（地形）と当たり判定
@@ -2666,8 +2656,7 @@ G.tiles = (function () {
   };
 })();
 
-</script>
-<script>
+
 /* ===== src/game/stages.js ===== */
 /* =========================================================================
    stages.js  --  ステージのテーマと地形生成
@@ -3281,8 +3270,7 @@ G.stages = (function () {
   };
 })();
 
-</script>
-<script>
+
 /* ===== src/game/weapons.js ===== */
 /* =========================================================================
    weapons.js  --  武器と弾
@@ -3916,8 +3904,7 @@ G.weapons = (function () {
   };
 })();
 
-</script>
-<script>
+
 /* ===== src/game/player.js ===== */
 /* =========================================================================
    player.js  --  主人公「ガンマン」
@@ -4398,8 +4385,7 @@ G.Player = (function () {
   return Player;
 })();
 
-</script>
-<script>
+
 /* ===== src/game/enemies.js ===== */
 /* =========================================================================
    enemies.js  --  雑魚敵
@@ -4750,8 +4736,7 @@ G.enemies = (function () {
   };
 })();
 
-</script>
-<script>
+
 /* ===== src/game/bosses.js ===== */
 /* =========================================================================
    bosses.js  --  ボス6体
@@ -5884,8 +5869,7 @@ G.bosses = (function () {
   };
 })();
 
-</script>
-<script>
+
 /* ===== src/game/items.js ===== */
 /* =========================================================================
    items.js  --  取得アイテム（回復・武器エネルギー・1UP・E缶）
@@ -6015,8 +5999,7 @@ G.items = (function () {
   return { Item: Item, KINDS: KINDS, randomDrop: randomDrop };
 })();
 
-</script>
-<script>
+
 /* ===== src/game/hud.js ===== */
 /* =========================================================================
    hud.js  --  画面表示（体力ゲージ・武器ゲージ・ボスHP・残機）
@@ -6116,9 +6099,7 @@ G.hud = (function () {
   return { drawStage: drawStage, drawBoss: drawBoss, gauge: gauge, bigText: bigText };
 })();
 
-</script>
-<!-- ================= シーン ================= -->
-<script>
+
 /* ===== src/scenes/title.js ===== */
 /* =========================================================================
    scenes/title.js  --  タイトル画面
@@ -6270,8 +6251,7 @@ G.scenes.title = (function () {
   return { enter: enter, exit: exit, update: update, draw: draw };
 })();
 
-</script>
-<script>
+
 /* ===== src/scenes/select.js ===== */
 /* =========================================================================
    scenes/select.js  --  ステージセレクト
@@ -6556,8 +6536,7 @@ G.scenes.select = (function () {
   return { enter: enter, exit: exit, update: update, draw: draw };
 })();
 
-</script>
-<script>
+
 /* ===== src/scenes/stage.js ===== */
 /* =========================================================================
    scenes/stage.js  --  ステージ本編
@@ -7492,8 +7471,7 @@ G.scenes.stage = (function () {
            get state() { return st; } };
 })();
 
-</script>
-<script>
+
 /* ===== src/scenes/weaponget.js ===== */
 /* =========================================================================
    scenes/weaponget.js  --  武器ゲット画面（ロックマンの醍醐味）
@@ -7657,8 +7635,7 @@ G.scenes.weaponget = (function () {
   return { enter: enter, exit: exit, update: update, draw: draw };
 })();
 
-</script>
-<script>
+
 /* ===== src/scenes/ending.js ===== */
 /* =========================================================================
    scenes/ending.js  --  全ボス撃破後のエンディング
@@ -7759,9 +7736,7 @@ G.scenes.ending = (function () {
   return { enter: enter, exit: exit, update: update, draw: draw };
 })();
 
-</script>
-<!-- ================= 起動 ================= -->
-<script>
+
 /* ===== src/main.js ===== */
 /* =========================================================================
    main.js  --  起動・シーン管理・メインループ
@@ -7962,6 +7937,5 @@ G.scenes.ending = (function () {
   } else boot();
 })();
 
+
 </script>
-</body>
-</html>

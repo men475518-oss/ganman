@@ -18,7 +18,8 @@
 スマホに転送して遊ぶ場合は、1ファイルにまとめた版が便利です:
 
 ```
-dist/ganman.html    ← これ1つで動きます（file:// でもOK）
+dist/ganman.html          ← これ1つで動きます（file:// でもOK）
+dist/ganman-artifact.html ← Artifact 公開用（本文のみ・文書タグなし）
 ```
 
 **横持ち（landscape）推奨**です。縦向きのときは案内が表示されます。
@@ -164,8 +165,12 @@ dist/ganman.html        単体HTML（配布用）
 ### 1ファイルHTMLを作る
 
 ```bash
-node tools/build.js        # -> dist/ganman.html
+node tools/build.js            # -> dist/ganman.html（普通の単体HTML）
+node tools/build-artifact.js   # -> dist/ganman-artifact.html（Artifact公開用）
 ```
+
+Artifact 版は publish 時に `<!doctype><head><body>` で包まれるため、
+文書タグを含まない「本文だけのHTML」として出力しています。
 
 ### 自動テスト
 
