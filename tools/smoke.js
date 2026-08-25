@@ -10,13 +10,27 @@ const SCENARIO = process.argv[2] || 'basic';
     executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
     args: ['--no-sandbox', '--autoplay-policy=no-user-gesture-required']
   });
-  const page = await browser.newPage({ viewport: { width: 844, height: 390 } });
+  const page = await browser.newPage({
+    viewport: { width: 844, height: 390 },
+    hasTouch: true,
+    isMobile: true,
+    deviceScaleFactor: 2
+  });
 
   const errors = [];
   page.on('pageerror', e => errors.push('PAGEERROR: ' + e.message + '\n' + (e.stack||'').split('\n').slice(0,4).join('\n')));
   page.on('console', m => { if (m.type() === 'error') errors.push('CONSOLE: ' + m.text()); });
 
   const TARGET = process.env.GANMAN_TARGET || 'index.html';
+  // NOAUDIO=1 のときは、ページのスクリプトが動く前に AudioContext を消す
+  if (process.env.NOAUDIO) {
+    await page.addInitScript(() => {
+      delete window.AudioContext;
+      delete window.webkitAudioContext;
+      Object.defineProperty(window, 'AudioContext', { get: () => undefined, configurable: true });
+      Object.defineProperty(window, 'webkitAudioContext', { get: () => undefined, configurable: true });
+    });
+  }
   await page.goto('file://' + path.join(__dirname, '..', TARGET));
   await page.waitForTimeout(400);
 
@@ -58,6 +72,18 @@ const SCENARIO = process.argv[2] || 'basic';
     }
     throw new Error('waitScene timeout: wanted ' + name + ', got ' + JSON.stringify(await getState()));
   };
+  // 同じシーンへ入り直すときは scene 名だけでは判定できないので stage の key で待つ
+  const waitStage = async (key, timeout = 20000) => {
+    const t0 = Date.now();
+    while (Date.now() - t0 < timeout) {
+      const k = await page.evaluate(() =>
+        (G.scene.name === 'stage' && !G.scene.transitioning && G.scenes.stage.state)
+          ? G.scenes.stage.state.key : null);
+      if (k === key) return k;
+      await page.waitForTimeout(120);
+    }
+    throw new Error('waitStage timeout: wanted ' + key);
+  };
   const waitPhase = async (phase, timeout = 20000) => {
     const t0 = Date.now();
     const seen = new Set();
@@ -71,7 +97,7 @@ const SCENARIO = process.argv[2] || 'basic';
   };
 
   await report('after-boot');
-  global.__ctx = { page, browser, errors, report, waitScene, waitPhase, getState };
+  global.__ctx = { page, browser, errors, report, waitScene, waitPhase, waitStage, getState };
 
   // シナリオ実行
   const run = require('./scenarios/' + SCENARIO + '.js');

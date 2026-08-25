@@ -421,13 +421,21 @@ G.stages = (function () {
       S.x += len;
     },
 
-    /* 壊せるブロックの壁（スーパーアームやチャージショットで破壊） */
+    /* 壊せるブロックの壁（スーパーアームの岩で破壊できる）
+
+       重要：高さは必ず2タイル(32px)までにする。
+       ジャンプの最高到達は48pxなので、3タイル以上にすると
+       スーパーアームを持っていないプレイヤーが詰んでしまう。
+       壊すのはあくまで近道であって、乗り越えても先へ進める。          */
     breakWall: function (S) {
-      var len = 10, i, y;
+      var len = 11, i, y;
       for (i = 0; i < len; i++) fillCol(S, S.x + i, S.gl);
       var bx = S.x + 4;
-      for (y = S.gl - 4; y < S.gl; y++) { put(S, bx, y, 'B'); put(S, bx + 1, y, 'B'); }
-      S.items.push({ kind: 'eTank', x: (S.x + 7) * T, y: (S.gl - 1) * T + 8 });
+      for (y = S.gl - 2; y < S.gl; y++) {
+        put(S, bx, y, 'B'); put(S, bx + 1, y, 'B'); put(S, bx + 2, y, 'B');
+      }
+      // 壁の向こう側にごほうび
+      S.items.push({ kind: 'eTank', x: (S.x + 8) * T, y: (S.gl - 1) * T + 8 });
       populate(S, S.x + 1, S.x + 3, S.gl, 1);
       S.x += len;
     },
@@ -466,7 +474,8 @@ G.stages = (function () {
   /* 出現しやすさ（数字が大きいほどよく出る） */
   var WEIGHTS = {
     flat: 5, pit: 4, platforms: 3, stepUp: 3, stepDown: 3,
-    spikeRun: 2, ladder: 3, corridor: 2, bigPit: 2, movingGap: 2, tower: 3
+    spikeRun: 2, ladder: 3, corridor: 2, bigPit: 2, movingGap: 2, tower: 3,
+    breakWall: 3
   };
   function pickPattern(names) {
     var total = 0, i;
@@ -512,9 +521,13 @@ G.stages = (function () {
     var checkpoint = null;
     var last = '';
     var guard = 0;
+    var needBreak = !!theme.breakable;   // 壊せるブロックを必ず1回は出す
 
     while (S.x < endX && guard++ < 300) {
       var n = pickPattern(names);
+      // ステージ中盤に来てもまだ出ていなければ強制的に配置する
+      if (needBreak && S.x > LW * 0.34 && endX - S.x > 20) { n = 'breakWall'; needBreak = false; }
+      else if (n === 'breakWall') needBreak = false;
       // 同じパターンの連続と、危険パターンの連続は避ける
       if (n === last) n = 'flat';
       if (RISKY[last] && RISKY[n]) n = 'flat';

@@ -44,12 +44,13 @@ module.exports = async ({ page, report, waitScene, waitPhase }) => {
   const enr = await page.evaluate(() => ({ enraged: G.scenes.stage.state.boss.enraged, hp: G.scenes.stage.state.boss.hp }));
   console.log('enrage-check', JSON.stringify(enr));
 
-  // とどめ
+  // とどめ（弾が外れて不安定にならないよう、直接ダメージを与える）
   await page.evaluate(() => {
     const s = G.scenes.stage.state;
-    s.boss.hp = 1; s.boss.invul = 0; s.player.hp = s.player.maxHp;
+    s.player.hp = s.player.maxHp;
+    s.boss.hp = 1; s.boss.invul = 0;
+    s.boss.damage(1, s.boss.weakness, s);
   });
-  await page.keyboard.press('KeyZ');
   await waitPhase('dying', 12000);
   await report('dying');
   await page.waitForTimeout(2500);

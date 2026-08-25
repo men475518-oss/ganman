@@ -103,6 +103,13 @@ G.scenes.stage = (function () {
     };
     st.onBossDying = function () {
       st.phase = 'dying'; st.phaseT = 0;
+      // 撃破演出中に残り弾で死ぬのは理不尽なので、敵の攻撃を全部消して無敵にする
+      // （配列を作り直すと当たり判定のループ中に壊れるので dead フラグで消す）
+      for (var i = 0; i < st.shots.length; i++) {
+        if (st.shots[i].team === 'enemy') st.shots[i].dead = true;
+      }
+      for (var j = 0; j < st.hazards.length; j++) st.hazards[j].dead = true;
+      st.player.invul = 99999;
       G.music.fadeOut(0.5);
     };
     st.onBossDefeated = function () {

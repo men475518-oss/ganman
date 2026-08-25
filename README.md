@@ -175,16 +175,34 @@ node tools/build.js        # -> dist/ganman.html
 npm install --no-save playwright
 
 node tools/smoke.js basic       # タイトル→セレクト→ステージ→操作
+node tools/smoke.js reach       # 全6ステージが踏破可能かを探索で検証（重要）
 node tools/smoke.js boss        # 扉→登場→戦闘→強化→撃破→武器ゲット
-node tools/smoke.js allbosses   # 6体すべての全攻撃を実行
+node tools/smoke.js allbosses   # 6体すべての全攻撃を通常/強化の両方で実行
 node tools/smoke.js weapons     # 武器7種の発射と弱点倍率
+node tools/smoke.js mechanics   # 氷の滑り・凍結・ブロック破壊・一方通行足場
 node tools/smoke.js death       # はしご・ポーズ・死亡・復活・ゲームオーバー
+node tools/smoke.js robust      # タッチ操作・チャージ・画面サイズ変更
 node tools/smoke.js fullrun     # 6ステージ全クリア→エンディング
 node tools/smoke.js perf        # FPS計測
+
+# 音が使えない環境をシミュレートする
+NOAUDIO=1 node tools/smoke.js noaudio
 
 # 単体HTMLビルドに対して実行する場合
 GANMAN_TARGET=dist/ganman.html node tools/smoke.js basic
 ```
+
+#### 踏破可能性チェックについて
+
+地形は手続き的に生成されるため、`reach` シナリオで
+**「立てるタイル」をノードにしたグラフ探索**を行い、
+スタートからボス扉まで到達できることを毎回確認しています
+（移動能力は実性能より控えめに、上3タイル・横4タイルで見積もり）。
+
+地形パターンを追加したら、必ずこのテストを通してください。
+たとえば「壊せるブロックの壁」は当初4タイル（64px）の高さがあり、
+ジャンプ到達（48px）を超えていたため、スーパーアーム未入手だと
+詰んでしまう状態でした。この種の事故を防ぐための安全網です。
 
 ### 拡張のしかた
 
