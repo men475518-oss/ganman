@@ -294,7 +294,9 @@ G.bosses = (function () {
   // 待機 -> 攻撃選択の共通処理。各ボスの runAct から呼ぶ
   B.doWait = function (st, attacks) {
     this.facePlayer(st);
-    var dur = this.enraged ? 22 : 40;
+    // 仮想スティックは実機のパッドより反応が遅れるので、
+    // 技と技の間に少しだけ余裕を持たせている
+    var dur = this.enraged ? 26 : 46;
     // 少し歩いて間合いを取る
     this.vx = Math.sin(this.age * 0.06) * (this.enraged ? 1.0 : 0.6) * this.face;
     if (this.actT >= dur) {

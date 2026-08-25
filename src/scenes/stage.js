@@ -493,8 +493,11 @@ G.scenes.stage = (function () {
     if (st.clearT % 16 === 0) {
       G.fx.sparkle(pl.cx(), pl.cy(), 6, '#FCE0A8');
     }
+    // 「STAGE CLEAR」の文字は drawOverlay 側で画面中央に出すので、
+    // ここでは光の粒だけを足す（二重表示になっていた）
     if (st.clearT === 40) {
-      G.fx.floatText('STAGE CLEAR', pl.cx(), pl.y - 30, '#F8D878', 2);
+      G.fx.ring(pl.cx(), pl.cy(), 4, 40, 20, '#F8D878');
+      G.fx.sparkle(pl.cx(), pl.cy(), 14, '#FCE0A8');
     }
     if (st.clearT > 170) {
       // 進行状況を保存して武器ゲット画面へ
