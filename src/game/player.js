@@ -9,10 +9,18 @@ G.Player = (function () {
   'use strict';
   var gfx = G.gfx, U = G.util, A = G.audio, TL = G.tiles, W = G.weapons;
 
-  /* ---------------- 調整用の定数（ここをいじれば挙動が変わる） ---------------- */
-  var WALK      = 1.35;
+  /* ---------------- 調整用の定数（ここをいじれば挙動が変わる） ----------------
+
+     ジャンプの「飛距離」と「高さ」は別々に効く量で決まる：
+       高さ   = JUMP_V^2 / (2 * GRAV)
+       滞空   = 2 * JUMP_V / GRAV
+       飛距離 = 横速度 * 滞空
+     重力やジャンプ初速をいじると高さの方が大きく伸びてしまうので、
+     飛距離だけを伸ばしたいときは AIR（空中の横速度）を上げる。       */
+  var WALK      = 1.35;   // 地上の歩行速度
+  var AIR       = 1.60;   // 空中の横移動速度。歩行より少し速く、跳ぶと遠くまで届く
   var JUMP_V    = -4.90;
-  var GRAV      = 0.25;
+  var GRAV      = 0.235;  // 少しだけ軽くして滞空時間を伸ばしている
   var MAX_FALL  = 7.0;
   var CLIMB_SP  = 1.20;
   var ICE_ACCEL = 0.09;   // 氷の上での加速
@@ -275,7 +283,8 @@ G.Player = (function () {
         else this.vx *= ICE_FRIC;
         if (Math.abs(this.vx) < 0.02) this.vx = 0;
       } else {
-        this.vx = ax * WALK;
+        // 空中では少し速く動けるので、ジャンプの飛距離が伸びる
+        this.vx = ax * (this.onGround ? WALK : AIR);
       }
     } else if (this.hurtTimer > 0) {
       this.vx *= 0.94;   // のけぞりは徐々に減速
