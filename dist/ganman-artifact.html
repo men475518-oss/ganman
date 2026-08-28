@@ -3320,9 +3320,53 @@ G.stages = (function () {
   function addEnemy(S, type, tx, groundRow, opts) {
     S.spawns.push({ type: type, x: tx * T + T / 2, y: groundRow * T, opts: opts || {} });
   }
+  /* ------------------------------------------------------------------
+     敵の解禁段階（ステージを進むほど強い敵が出てくる）
+
+       段階0 … 基本の敵。最初から出る
+       段階1 … 少し厄介な敵。3割ほど進んでから
+       段階2 … 硬い・堅実に対処が要る敵。6割ほど進んでから
+
+     序盤は「一個前の顔ぶれ」だけで肩慣らしをして、
+     進むにつれて新顔が混ざり、数も増えていくようにしている。
+     ------------------------------------------------------------------ */
+  var TIER = {
+    met: 0, fly: 0, turret: 0, hop: 0, spike: 0,
+    crawl: 1, bat: 1, split: 1, riser: 1,
+    joe: 2, tank: 2
+  };
+  var TIER_AT = [0, 0.30, 0.58];    // 各段階が解禁される進行度
+
+  /* ステージのどのあたりまで来たか（0=開始, 1=ボス手前） */
+  function progress(S) {
+    return U.clamp((S.x - 12) / Math.max(1, S.endX - 12), 0, 1);
+  }
+
+  /* 進行度に応じた敵の抽選。
+     解禁済みの段階だけを候補にし、新しい段階ほど後半で出やすくする。 */
+  function pickEnemy(S) {
+    var p = progress(S);
+    var mix = S.theme.mix;
+    var pool = [], weights = [], total = 0;
+    for (var i = 0; i < mix.length; i++) {
+      var t = TIER[mix[i]] || 0;
+      if (p < TIER_AT[t]) continue;                 // まだ解禁されていない
+      // 基本の敵は後半すこし減り、新顔は後半ほど増える
+      var w = (t === 0) ? (1.2 - p * 0.4) : (0.6 + (p - TIER_AT[t]) * 2.0);
+      pool.push(mix[i]); weights.push(w); total += w;
+    }
+    if (!pool.length) return mix[0];
+    var r = U.rnd() * total;
+    for (var j = 0; j < pool.length; j++) {
+      r -= weights[j];
+      if (r <= 0) return pool[j];
+    }
+    return pool[pool.length - 1];
+  }
+
   /* テーマの敵構成からランダムに1体置く（種類ごとに置き方が違う） */
   function spawnMixed(S, tx, groundRow) {
-    var type = U.pick(S.theme.mix);
+    var type = pickEnemy(S);
     if (type === 'fly' || type === 'split') {
       // 飛ぶ／漂う敵は空中に置く
       S.spawns.push({ type: type, x: tx * T + 8, y: (groundRow - U.rndInt(3, 6)) * T, opts: {} });
@@ -3336,12 +3380,18 @@ G.stages = (function () {
       addEnemy(S, type, tx, groundRow);
     }
   }
-  // 区間内に n 体ばらまく
+  /* 区間内に敵をばらまく。数は進行度に比例して増える
+     （序盤は指定の約0.5倍、終盤は約1.6倍）           */
   function populate(S, x0, x1, groundRow, n) {
     var span = x1 - x0;
     if (span < 2) return;
-    for (var i = 0; i < n; i++) {
-      var tx = x0 + Math.floor((i + 0.5) / n * span) + U.rndInt(-1, 1);
+    var p = progress(S);
+    var want = n * (0.45 + p * 1.55);
+    var count = Math.floor(want);
+    if (U.rnd() < want - count) count++;            // 端数は確率で1体足す
+    if (p < 0.08) count = Math.min(count, 1);       // 出だしは肩慣らし
+    for (var i = 0; i < count; i++) {
+      var tx = x0 + Math.floor((i + 0.5) / count * span) + U.rndInt(-1, 1);
       spawnMixed(S, U.clamp(tx, x0, x1 - 1), groundRow);
     }
   }
@@ -3659,6 +3709,19 @@ G.stages = (function () {
     }
   };
 
+  /* このパターンは「進行度がこれ以上」でないと出さない。
+     強い敵を連れてくるものや、難しいものを序盤に置かないための制限。 */
+  var PATTERN_MIN_P = {
+    guardPost: 0.42,     // 盾持ち兵が出る
+    crawlBlocks: 0.22,   // 壁這いが出る
+    crusherHall: 0.28,
+    ventRun: 0.22,
+    bigPit: 0.16,
+    movingGap: 0.20,
+    blinkBridge: 0.18,
+    crumbleRun: 0.22
+  };
+
   /* 出現しやすさ（数字が大きいほどよく出る） */
   var WEIGHTS = {
     flat: 5, pit: 4, platforms: 3, stepUp: 3, stepDown: 3,
@@ -3697,7 +3760,7 @@ G.stages = (function () {
       g.push(row);
     }
 
-    var S = { g: g, x: 0, gl: GY, spawns: [], items: [], theme: theme };
+    var S = { g: g, x: 0, gl: GY, spawns: [], items: [], theme: theme, endX: 1 };
 
     /* --- スタート地帯（安全な平地） --- */
     for (x = 0; x < 12; x++) fillCol(S, x, GY);
@@ -3720,6 +3783,7 @@ G.stages = (function () {
     // パターンを並べ終える位置。一番幅の広いパターン(15)が来ても
     // 扉を踏み越えないよう、扉から十分手前で打ち切る
     var endX = doorTx - 18;
+    S.endX = endX;                 // 進行度の計算に使う
     var checkpoint = null;
     var last = '';
     var guard = 0;
@@ -3742,12 +3806,17 @@ G.stages = (function () {
       if (endX - S.x < 14) n = 'flat';
       // 高いところで tower/platforms を始めると天井を突き抜けるので調整
       if ((n === 'tower' || n === 'platforms') && S.gl < 11) n = 'stepDown';
+      // まだ早いパターンは平地に置き換える（難易度カーブ）
+      var prog = progress(S);
+      if (PATTERN_MIN_P[n] && prog < PATTERN_MIN_P[n]) n = 'flat';
 
       /* --- 未登場の目玉ギミックを強制配置 ---
          上の調整より後に行う。先に強制すると、直後の
          「危険パターンの連続回避」で平地に化けて消えてしまうため。
-         危険パターンの直後は見送り、次の周回で改めて置く。          */
-      if (mustHave.length && S.x >= nextForce && endX - S.x > 22 && !RISKY[last]) {
+         危険パターンの直後や、まだ早い場合は見送り、次の周回で改めて置く。 */
+      var cand = mustHave[0];
+      if (mustHave.length && S.x >= nextForce && endX - S.x > 22 && !RISKY[last] &&
+          !(PATTERN_MIN_P[cand] && prog < PATTERN_MIN_P[cand])) {
         n = mustHave.shift();
         nextForce = S.x + slot;
       } else {
