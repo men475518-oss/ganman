@@ -23,6 +23,15 @@ G.Player = (function () {
   var GRAV      = 0.235;  // 少しだけ軽くして滞空時間を伸ばしている
   var MAX_FALL  = 7.0;
   var CLIMB_SP  = 1.20;
+  /* --- 水中：重力が弱まり、ゆっくり沈み、ジャンプが高くなる --- */
+  /* 水中は重力が弱いので、ジャンプ初速はむしろ下げないと跳びすぎる。
+     高さ = 初速^2 / (2 * 重力) なので、重力を 0.55 倍にしたぶん
+     初速を 0.85 倍にして、地上の約1.3倍の高さに収めている。      */
+  var WATER_GRAV = 0.55;   // 重力の倍率
+  var WATER_FALL = 0.45;   // 落下上限の倍率（ゆっくり沈む）
+  var WATER_JUMP = 0.85;   // ジャンプ初速の倍率
+  /* --- ベルトコンベアに乗ったときに流される速さ --- */
+  var BELT_PUSH  = 0.78;
   var ICE_ACCEL = 0.09;   // 氷の上での加速
   var ICE_FRIC  = 0.985;  // 氷の上での減速（1に近いほど滑る）
   var HURT_TIME = 22;     // のけぞって動けない時間
@@ -60,6 +69,8 @@ G.Player = (function () {
     this.deathTimer = 0;
 
     this.onIce = false;
+    this.inWater = false;
+    this.belt = 0;
     this.climbing = false;
     this.ladderX = 0;
 
@@ -267,8 +278,15 @@ G.Player = (function () {
       }
     }
 
-    /* ================= 横移動 ================= */
+    /* ================= 足元と周囲の状態を調べる ================= */
     this.onIce = TL.boxSlippery(this.x, this.y + this.h, this.w, 2);
+    this.inWater = TL.boxWater(this.x + 2, this.y + 4, this.w - 4, this.h - 6);
+    // ベルトコンベアは足元1px下を見る（乗っているときだけ流される）
+    this.belt = this.onGround ? TL.conveyorAt(this.x, this.y + this.h + 1, this.w) : 0;
+    // 崩れる床に乗ったら、崩壊のカウントを始めさせる
+    if (this.onGround) TL.crumbleTouch(this.x, this.y + this.h + 1, this.w);
+
+    /* ================= 横移動 ================= */
 
     if (canAct) {
       var ax = 0;
@@ -292,20 +310,31 @@ G.Player = (function () {
 
     /* ================= ジャンプ ================= */
     if (canAct && inp.pressed.jump && this.onGround) {
-      this.vy = JUMP_V;
+      this.vy = JUMP_V * (this.inWater ? WATER_JUMP : 1);
       this.onGround = false;
       this.state = 'jump';
       A.sfx.jump();
       G.fx.dust(this.cx(), this.y + this.h, 0);
     }
     // ボタンを離したら上昇を打ち切る＝ジャンプの高さを調整できる
-    if (!inp.held.jump && this.vy < -1.6) this.vy = -1.6;
+    var cut = this.inWater ? -2.2 : -1.6;
+    if (!inp.held.jump && this.vy < cut) this.vy = cut;
 
-    /* ================= 重力 ================= */
-    this.vy = Math.min(this.vy + GRAV, MAX_FALL);
+    /* ================= 重力（水中は弱い） ================= */
+    var grav = this.inWater ? GRAV * WATER_GRAV : GRAV;
+    var maxFall = this.inWater ? MAX_FALL * WATER_FALL : MAX_FALL;
+    this.vy = Math.min(this.vy + grav, maxFall);
 
-    /* ================= 移動の適用 ================= */
-    TL.moveX(this, this.vx);
+    // 水中では泡が立ちのぼる
+    if (this.inWater && this.animT % 14 === 0) {
+      G.fx.part({ x: this.cx() + U.rndRange(-5, 5), y: this.y + U.rndRange(0, 10),
+        vx: U.rndRange(-0.15, 0.15), vy: -U.rndRange(0.4, 0.9),
+        life: U.rndInt(24, 44), size: U.rndInt(1, 3),
+        color: '#BCE8FC', type: 'circle', shrink: false });
+    }
+
+    /* ================= 移動の適用（コンベアの分だけ流される） ================= */
+    TL.moveX(this, this.vx + this.belt * BELT_PUSH);
     this.wasGround = this.onGround;
     var hitY = TL.moveY(this, this.vy);
     this.onGround = (hitY === 1) || TL.onGround(this);
@@ -388,6 +417,9 @@ G.Player = (function () {
 
   /* ---------------- 移動後の共通処理（トゲ・落下死） ---------------- */
   P.postUpdate = function (st) {
+    // 明滅ブロックが体の中に出現した場合などの保険。上下に少し逃がす
+    TL.unstick(this);
+
     // トゲに触れたら即死（原作準拠）
     if (TL.boxHazard(this.x + 2, this.y + 2, this.w - 4, this.h - 4)) {
       this.hp = 0;

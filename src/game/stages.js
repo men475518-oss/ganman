@@ -66,7 +66,8 @@ G.stages = (function () {
       solid: '#3C3C8C', solidHi: '#6868C8', solidLo: '#202050',
       edge: '#F8D878', deco: '#00E8D8', ladder: '#F8D878',
       spike: '#BCBCBC', spikeBase: '#3C3C8C', ice: '#3CBCFC', brk: '#5C5C9C',
-      mix: ['met', 'turret', 'fly', 'met', 'turret'],
+      mix: ['met', 'turret', 'fly', 'joe', 'crawl'],
+      gimmicks: ['conveyor', 'blinkBridge'],
       drawBg: function (camX, camY, t) {
         gfx.clear(this.sky);
         starfield(camX, camY, 46, 0.12, ['#FCFCFC', '#F8D878', '#3CBCFC']);
@@ -93,7 +94,8 @@ G.stages = (function () {
       solid: '#8C2820', solidHi: '#C85838', solidLo: '#500810',
       edge: '#FC9838', deco: '#F8D878', ladder: '#FC9838',
       spike: '#FCE0A8', spikeBase: '#8C2820', ice: '#3CBCFC', brk: '#A04030',
-      mix: ['met', 'hop', 'fly', 'turret', 'hop'],
+      mix: ['met', 'hop', 'fly', 'tank', 'riser'],
+      gimmicks: ['ventRun', 'crumbleRun'],
       drawBg: function (camX, camY, t) {
         gfx.clear(this.sky);
         // 奥の溶岩の照り返し（脈打つ）
@@ -123,7 +125,8 @@ G.stages = (function () {
       solid: '#4878A8', solidHi: '#88B8D8', solidLo: '#204058',
       edge: '#BCE8FC', deco: '#FCFCFC', ladder: '#BCE8FC',
       spike: '#FCFCFC', spikeBase: '#4878A8', ice: '#5CC8FC', brk: '#6890B8',
-      mix: ['met', 'fly', 'hop', 'spike', 'fly'],
+      mix: ['met', 'fly', 'hop', 'spike', 'bat'],
+      gimmicks: ['waterPool', 'blinkBridge'],
       iceFloor: 0.35,      // 床の35%を氷にする
       drawBg: function (camX, camY, t) {
         gfx.clear(this.sky);
@@ -152,7 +155,8 @@ G.stages = (function () {
       solid: '#3C6C3C', solidHi: '#68A868', solidLo: '#1C3C1C',
       edge: '#B8F818', deco: '#F8D878', ladder: '#B8F818',
       spike: '#BCBCBC', spikeBase: '#3C6C3C', ice: '#3CBCFC', brk: '#5C8C4C',
-      mix: ['met', 'turret', 'hop', 'fly', 'spike'],
+      mix: ['met', 'turret', 'hop', 'split', 'tank'],
+      gimmicks: ['crusherHall', 'conveyor'],
       drawBg: function (camX, camY, t) {
         gfx.clear(this.sky);
         skyline(camX, 0.2, gfx.H - 24, 34, 70, '#14301C', 4);
@@ -179,7 +183,8 @@ G.stages = (function () {
       solid: '#7C7C8C', solidHi: '#BCBCC8', solidLo: '#4C4C5C',
       edge: '#00E8D8', deco: '#D82800', ladder: '#BCBCBC',
       spike: '#FCFCFC', spikeBase: '#7C7C8C', ice: '#3CBCFC', brk: '#8C8C9C',
-      mix: ['fly', 'met', 'spike', 'turret', 'fly'],
+      mix: ['fly', 'met', 'spike', 'joe', 'bat'],
+      gimmicks: ['crusherHall', 'blinkBridge'],
       drawBg: function (camX, camY, t) {
         gfx.clear(this.sky);
         // 回る歯車のシルエット
@@ -207,7 +212,8 @@ G.stages = (function () {
       solid: '#8C5828', solidHi: '#C89050', solidLo: '#4C2C10',
       edge: '#FCE0A8', deco: '#FC9838', ladder: '#D8A860',
       spike: '#BCBCBC', spikeBase: '#8C5828', ice: '#3CBCFC', brk: '#A06830',
-      mix: ['met', 'spike', 'hop', 'met', 'turret'],
+      mix: ['met', 'spike', 'hop', 'crawl', 'tank'],
+      gimmicks: ['crumbleRun', 'crusherHall'],
       breakable: true,
       drawBg: function (camX, camY, t) {
         gfx.clear(this.sky);
@@ -250,12 +256,15 @@ G.stages = (function () {
   /* テーマの敵構成からランダムに1体置く（種類ごとに置き方が違う） */
   function spawnMixed(S, tx, groundRow) {
     var type = U.pick(S.theme.mix);
-    if (type === 'fly') {
-      // 飛行敵は空中に
-      S.spawns.push({ type: 'fly', x: tx * T + 8, y: (groundRow - U.rndInt(3, 6)) * T, opts: {} });
+    if (type === 'fly' || type === 'split') {
+      // 飛ぶ／漂う敵は空中に置く
+      S.spawns.push({ type: type, x: tx * T + 8, y: (groundRow - U.rndInt(3, 6)) * T, opts: {} });
     } else if (type === 'turret') {
       // 砲台は床の上に固定
       S.spawns.push({ type: 'turret', x: tx * T + 8, y: (groundRow - 1) * T + 4, opts: {} });
+    } else if (type === 'bat') {
+      // ぶら下がり敵は高いところに吊るす
+      S.spawns.push({ type: 'bat', x: tx * T + 8, y: (groundRow - U.rndInt(6, 9)) * T, opts: {} });
     } else {
       addEnemy(S, type, tx, groundRow);
     }
@@ -443,6 +452,115 @@ G.stages = (function () {
       S.x += len;
     },
 
+
+    /* --- ここからギミック系のパターン --- */
+
+    /* ベルトコンベア：流れに乗ると速く、逆らうと進みにくい */
+    conveyor: function (S) {
+      var pre = 2, w = 9, post = 2, i;
+      for (i = 0; i < pre; i++) fillCol(S, S.x + i, S.gl);
+      var dir = U.rnd() < 0.5 ? '<' : '>';
+      for (i = 0; i < w; i++) {
+        fillCol(S, S.x + pre + i, S.gl);
+        put(S, S.x + pre + i, S.gl, dir);
+      }
+      for (i = 0; i < post; i++) fillCol(S, S.x + pre + w + i, S.gl);
+      populate(S, S.x + pre, S.x + pre + w, S.gl, 2);
+      S.x += pre + w + post;
+    },
+
+    /* 明滅ブロックの橋。
+       'o' と 'p' を交互に置くので、どちらの位相でも1つおきに足場があり、
+       常に2タイル跳びで渡り切れる（＝運が悪くて詰むことがない）。   */
+    blinkBridge: function (S) {
+      var pre = 3, w = 5, post = 3, i;
+      for (i = 0; i < pre; i++) fillCol(S, S.x + i, S.gl);
+      for (i = 0; i < w; i++) put(S, S.x + pre + i, LH - 1, '^');
+      for (i = 0; i < w; i++) {
+        put(S, S.x + pre + i, S.gl - 1, (i % 2 === 0) ? 'o' : 'p');
+      }
+      for (i = 0; i < post; i++) fillCol(S, S.x + pre + w + i, S.gl);
+      S.x += pre + w + post;
+    },
+
+    /* 崩れる床：乗ると崩れ始めるので立ち止まれない。時間が経つと復活する */
+    crumbleRun: function (S) {
+      var pre = 3, w = 6, post = 3, i;
+      for (i = 0; i < pre; i++) fillCol(S, S.x + i, S.gl);
+      for (i = 0; i < w; i++) {
+        put(S, S.x + pre + i, LH - 1, '^');
+        put(S, S.x + pre + i, S.gl, 'c');
+      }
+      for (i = 0; i < post; i++) fillCol(S, S.x + pre + w + i, S.gl);
+      S.x += pre + w + post;
+    },
+
+    /* 水たまり：中では重力が弱まり、ゆっくり沈んで高く跳べる。
+       深さは3タイル。水中ジャンプ(約67px)で必ず縁まで戻れる深さにしてある。 */
+    waterPool: function (S) {
+      var pre = 3, w = 8, post = 3, depth = 3, i, y;
+      for (i = 0; i < pre; i++) fillCol(S, S.x + i, S.gl);
+      for (i = 0; i < w; i++) {
+        fillCol(S, S.x + pre + i, S.gl + depth);
+        for (y = S.gl; y < S.gl + depth; y++) put(S, S.x + pre + i, y, '~');
+      }
+      for (i = 0; i < post; i++) fillCol(S, S.x + pre + w + i, S.gl);
+      S.spawns.push({ type: 'riser', x: (S.x + pre + Math.floor(w / 2)) * T,
+                      y: (S.gl + depth) * T, opts: {} });
+      S.items.push({ kind: 'wpBig', x: (S.x + pre + 1) * T, y: (S.gl + depth - 1) * T + 8 });
+      S.x += pre + w + post;
+    },
+
+    /* 火炎噴出口の通路：噴き上がる炎の合間を抜ける */
+    ventRun: function (S) {
+      var len = 13, i;
+      for (i = 0; i < len; i++) fillCol(S, S.x + i, S.gl);
+      for (i = 2; i < len - 2; i += 4) {
+        S.spawns.push({ type: 'vent', x: (S.x + i) * T + 8, y: S.gl * T,
+                        opts: { phase: i * 31, height: 56 } });
+      }
+      populate(S, S.x + 1, S.x + len, S.gl, 1);
+      S.x += len;
+    },
+
+    /* プレス機の広間：落ちてくる圧壊機の間をすり抜ける */
+    crusherHall: function (S) {
+      var len = 15, i, y;
+      for (i = 0; i < len; i++) {
+        fillCol(S, S.x + i, S.gl);
+        for (y = 0; y < S.gl - 7; y++) put(S, S.x + i, y, '#');
+      }
+      for (i = 3; i < len - 3; i += 6) {
+        S.spawns.push({ type: 'crusher', x: (S.x + i) * T, y: (S.gl - 7) * T,
+                        opts: { w: 40, dropY: S.gl * T - 22, phase: i * 21 } });
+      }
+      populate(S, S.x + 1, S.x + len, S.gl, 1);
+      S.x += len;
+    },
+
+    /* 関所：盾持ちと砲台が守る。盾の正面からは弾が通らない */
+    guardPost: function (S) {
+      var len = 11, i;
+      for (i = 0; i < len; i++) fillCol(S, S.x + i, S.gl);
+      addEnemy(S, 'joe', S.x + 5, S.gl);
+      S.spawns.push({ type: 'turret', x: (S.x + 8) * T, y: (S.gl - 1) * T + 4, opts: {} });
+      put(S, S.x + 2, S.gl - HOP, '='); put(S, S.x + 3, S.gl - HOP, '=');
+      S.items.push({ kind: 'hpBig', x: (S.x + 2.5) * T, y: (S.gl - HOP - 1) * T + 8 });
+      S.x += len;
+    },
+
+    /* 宙に浮くブロック：壁這いがぐるぐる回っている */
+    crawlBlocks: function (S) {
+      var len = 12, i, y;
+      for (i = 0; i < len; i++) fillCol(S, S.x + i, S.gl);
+      for (i = 3; i < 7; i++)
+        for (y = S.gl - 6; y < S.gl - 3; y++) put(S, S.x + i, y, '#');
+      S.spawns.push({ type: 'crawl', x: (S.x + 4) * T, y: (S.gl - 6) * T, opts: {} });
+      S.spawns.push({ type: 'crawl', x: (S.x + 6) * T, y: (S.gl - 6) * T, opts: { dir: -1 } });
+      populate(S, S.x + 8, S.x + len, S.gl, 1);
+      S.x += len;
+    },
+
     /* 動く足場で大穴を渡る */
     movingGap: function (S) {
       var pre = 3, w = 8, post = 3, i;
@@ -478,7 +596,10 @@ G.stages = (function () {
   var WEIGHTS = {
     flat: 5, pit: 4, platforms: 3, stepUp: 3, stepDown: 3,
     spikeRun: 2, ladder: 3, corridor: 2, bigPit: 2, movingGap: 2, tower: 3,
-    breakWall: 3
+    breakWall: 3,
+    // ギミック系（テーマごとに使えるものが違う）
+    conveyor: 3, blinkBridge: 3, crumbleRun: 3, waterPool: 3,
+    ventRun: 3, crusherHall: 3, guardPost: 3, crawlBlocks: 3
   };
   function pickPattern(names) {
     var total = 0, i;
@@ -494,7 +615,8 @@ G.stages = (function () {
   /* ======================================================================
      ステージ生成
      ====================================================================== */
-  var RISKY = { pit: 1, bigPit: 1, spikeRun: 1, movingGap: 1 };
+  var RISKY = { pit: 1, bigPit: 1, spikeRun: 1, movingGap: 1,
+                blinkBridge: 1, crumbleRun: 1, crusherHall: 1 };
 
   function build(key) {
     var theme = THEMES[key];
@@ -517,20 +639,35 @@ G.stages = (function () {
 
     /* --- 中盤：パターンを並べる --- */
     var names = ['flat', 'pit', 'platforms', 'stepUp', 'spikeRun',
-                 'stepDown', 'ladder', 'bigPit', 'corridor', 'movingGap', 'tower'];
+                 'stepDown', 'ladder', 'bigPit', 'corridor', 'movingGap', 'tower',
+                 'guardPost', 'crawlBlocks'];
     if (theme.breakable) names.push('breakWall');
+    // テーマごとの目玉ギミック（ステージの性格づけ）
+    if (theme.gimmicks) names = names.concat(theme.gimmicks);
 
-    var endX = LW - ARENA_W - 16;
+    // 扉とアリーナの位置を先に決めておく（通路の敷き直しに使う）
+    var doorTx = LW - ARENA_W - 2;
+    var arenaTx0 = LW - ARENA_W;
+    var arenaTx1 = LW - 2;
+
+    // パターンを並べ終える位置。一番幅の広いパターン(15)が来ても
+    // 扉を踏み越えないよう、扉から十分手前で打ち切る
+    var endX = doorTx - 18;
     var checkpoint = null;
     var last = '';
     var guard = 0;
-    var needBreak = !!theme.breakable;   // 壊せるブロックを必ず1回は出す
+
+    /* そのステージの「目玉ギミック」は運任せにせず、必ず1回は出す。
+       ステージを等間隔に区切って、区切りを越えたら未登場のものを強制配置する。 */
+    var mustHave = (theme.gimmicks || []).slice();
+    if (theme.breakable) mustHave.push('breakWall');
+    var slot = (endX - S.x) / (mustHave.length + 1);
+    var nextForce = S.x + slot;
 
     while (S.x < endX && guard++ < 300) {
       var n = pickPattern(names);
-      // ステージ中盤に来てもまだ出ていなければ強制的に配置する
-      if (needBreak && S.x > LW * 0.34 && endX - S.x > 20) { n = 'breakWall'; needBreak = false; }
-      else if (n === 'breakWall') needBreak = false;
+
+      // --- 抽選結果に対する調整 ---
       // 同じパターンの連続と、危険パターンの連続は避ける
       if (n === last) n = 'flat';
       if (RISKY[last] && RISKY[n]) n = 'flat';
@@ -538,6 +675,19 @@ G.stages = (function () {
       if (endX - S.x < 14) n = 'flat';
       // 高いところで tower/platforms を始めると天井を突き抜けるので調整
       if ((n === 'tower' || n === 'platforms') && S.gl < 11) n = 'stepDown';
+
+      /* --- 未登場の目玉ギミックを強制配置 ---
+         上の調整より後に行う。先に強制すると、直後の
+         「危険パターンの連続回避」で平地に化けて消えてしまうため。
+         危険パターンの直後は見送り、次の周回で改めて置く。          */
+      if (mustHave.length && S.x >= nextForce && endX - S.x > 22 && !RISKY[last]) {
+        n = mustHave.shift();
+        nextForce = S.x + slot;
+      } else {
+        // 抽選で先に出たものは「未登場リスト」から外す
+        var mi = mustHave.indexOf(n);
+        if (mi >= 0) mustHave.splice(mi, 1);
+      }
       PATTERNS[n](S);
       last = n;
 
@@ -548,23 +698,36 @@ G.stages = (function () {
       }
     }
 
-    /* --- 地面の高さを基準に戻してボス前の通路へ --- */
+    /* --- 地面の高さを基準に戻す --- */
     while (S.gl < GY) {
       S.gl += HOP;
       for (x = 0; x < 3; x++) fillCol(S, S.x + x, S.gl);
       S.x += 3;
     }
     S.gl = GY;
-    while (S.x < LW - ARENA_W - 2) { fillCol(S, S.x, S.gl); S.x++; }
+
+    /* --- ボス前の通路とボス部屋を作り直す ---
+       パターンの並びがどこで終わっても壊れないよう、
+       この区間は一度まっさらに消してから引き直す。
+       （以前はここが上書きされず、扉の手前に穴が開くことがあった）  */
+    var corridorStart = Math.min(S.x, doorTx - 12);
+    for (x = corridorStart; x < LW; x++) {
+      for (y = 0; y < LH; y++) g[y][x] = '.';
+    }
+    // 扉までは平らな床
+    for (x = corridorStart; x < doorTx; x++) fillCol(S, x, GY);
+    S.x = doorTx;
+
+    // 通路に紛れ込んだ敵やアイテムは取り除く（消した地形の上に残さない）
+    var cutPx = corridorStart * T;
+    S.spawns = S.spawns.filter(function (sp) { return sp.x < cutPx; });
+    S.items  = S.items.filter(function (it) { return it.x < cutPx; });
 
     // ボス前の補給ゾーン
-    S.items.push({ kind: 'hpBig', x: (LW - ARENA_W - 9) * T, y: (GY - 1) * T + 8 });
-    S.items.push({ kind: 'wpBig', x: (LW - ARENA_W - 6) * T, y: (GY - 1) * T + 8 });
+    S.items.push({ kind: 'hpBig', x: (doorTx - 7) * T, y: (GY - 1) * T + 8 });
+    S.items.push({ kind: 'wpBig', x: (doorTx - 4) * T, y: (GY - 1) * T + 8 });
 
     /* --- 扉とボス部屋 --- */
-    var doorTx = LW - ARENA_W - 2;
-    var arenaTx0 = LW - ARENA_W;
-    var arenaTx1 = LW - 2;
 
     // 扉（幅2・高さ4）とその上の壁
     for (y = GY - 4; y < GY; y++) { g[y][doorTx] = 'D'; g[y][doorTx + 1] = 'D'; }

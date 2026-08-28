@@ -2134,6 +2134,189 @@ G.sprites = (function () {
     '...K..K..K...'
   ];
 
+
+  /* --- 盾持ち兵：正面からの弾を盾で弾く。撃つ瞬間だけ盾を下げる --- */
+  var JOE_GUARD = [
+    '....KKKKKK......',
+    '...KGGGGGGK.....',
+    '..KGGGGGGGGK....',
+    '..KGKKKKKKGK....',
+    '..KGKRRRRKGK....',
+    '..KGGGGGGGGK....',
+    '...KGGGGGGK.....',
+    '..KKKKKKKKKK....',
+    '.KBBBBBBBBBK....',
+    '.KBBBBBBBBBKKKK.',
+    '.KBBBWWWWBBKCWCK',
+    '.KBBBWWWWBBKCCCK',
+    '.KBBBBBBBBBKCCCK',
+    '.KBBBBBBBBBKCWCK',
+    '..KBBBBBBBBKKKKK',
+    '..KBBBKKBBBK....',
+    '..KBBK..KBBK....',
+    '..KBBK..KBBK....',
+    '..KGGK..KGGK....',
+    '..KKKK..KKKK....'
+  ];
+  var JOE_FIRE = [
+    '....KKKKKK......',
+    '...KGGGGGGK.....',
+    '..KGGGGGGGGK....',
+    '..KGKKKKKKGK....',
+    '..KGKAAAAKGK....',
+    '..KGGGGGGGGK....',
+    '...KGGGGGGK.....',
+    '..KKKKKKKKKK....',
+    '.KBBBBBBBBBK....',
+    '.KBBBBBBBBBKKK..',
+    '.KBBBWWWWBBKYYK.',
+    '.KBBBWWWWBBKYYK.',
+    '.KBBBBBBBBBKKK..',
+    '.KBBBBBBBBBK....',
+    '..KBBBBBBBBKCCCK',
+    '..KBBBKKBBBKCCCK',
+    '..KBBK..KBBKKKKK',
+    '..KBBK..KBBK....',
+    '..KGGK..KGGK....',
+    '..KKKK..KKKK....'
+  ];
+
+  /* --- 天井にぶら下がる敵。真下を通ると落ちてくる --- */
+  var BAT_HANG = [
+    '..KKKKKKKKKK..',
+    '..KVVVVVVVVK..',
+    '...KVVVVVVK...',
+    '...KVRVVRVK...',
+    '....KVVVVK....',
+    '.....KVVK.....',
+    '.....KVVK.....',
+    '......KK......'
+  ];
+  var BAT_FLY = [
+    'KK..KKKKKK..KK',
+    'KVKKVVVVVVKKVK',
+    '.KVVVRVVRVVVK.',
+    '..KVVVVVVVVK..',
+    '...KVVVVVVK...',
+    '....KVVVVK....',
+    '.....KVVK.....',
+    '......KK......'
+  ];
+
+  /* --- 壁や天井も伝って歩く敵 --- */
+  var CRAWL1 = [
+    '...KKKKKKKK...',
+    '..KNNNNNNNNK..',
+    '.KNNWWNNWWNNK.',
+    '.KNNWKNNWKNNK.',
+    'KNNNNNNNNNNNNK',
+    'KNNNNNNNNNNNNK',
+    '.KNNNNNNNNNNK.',
+    '..KKKKKKKKKK..',
+    '..K.K.K.K.K...'
+  ];
+  var CRAWL2 = [
+    '...KKKKKKKK...',
+    '..KNNNNNNNNK..',
+    '.KNNWWNNWWNNK.',
+    '.KNNWKNNWKNNK.',
+    'KNNNNNNNNNNNNK',
+    'KNNNNNNNNNNNNK',
+    '.KNNNNNNNNNNK.',
+    '..KKKKKKKKKK..',
+    '...K.K.K.K.K..'
+  ];
+
+  /* --- 装甲車：硬くて遅いが、拡散弾を撃ってくる --- */
+  var TANK1 = [
+    '......KKKKKKKK......',
+    '.....KGGGGGGGGK.....',
+    '....KGGRRRRRRGGK....',
+    '....KGGRWWWWRGGK....',
+    '....KGGRRRRRRGGK....',
+    '...KGGGGGGGGGGGGK...',
+    'KKKKGGGGGGGGGGGGKKKK',
+    'KEEEGGGGGGGGGGGGKYYK',
+    'KEEEGGGGGGGGGGGGKYYK',
+    'KKKKGGGGGGGGGGGGKKKK',
+    '..KGGGGGGGGGGGGGGK..',
+    '..KKKKKKKKKKKKKKKK..',
+    '.KEEEEEEEEEEEEEEEEK.',
+    '.KEKEKEKEKEKEKEKEEK.',
+    '.KEEEEEEEEEEEEEEEEK.',
+    '.KKKKKKKKKKKKKKKKKK.'
+  ];
+  var TANK2 = [
+    '......KKKKKKKK......',
+    '.....KGGGGGGGGK.....',
+    '....KGGAAAAAAGGK....',
+    '....KGGAWWWWAGGK....',
+    '....KGGAAAAAAGGK....',
+    '...KGGGGGGGGGGGGK...',
+    'KKKKGGGGGGGGGGGGKKKK',
+    'KEEEGGGGGGGGGGGGKAAK',
+    'KEEEGGGGGGGGGGGGKAAK',
+    'KKKKGGGGGGGGGGGGKKKK',
+    '..KGGGGGGGGGGGGGGK..',
+    '..KKKKKKKKKKKKKKKK..',
+    '.KEEEEEEEEEEEEEEEEK.',
+    '.KEEKEKEKEKEKEKEKEK.',
+    '.KEEEEEEEEEEEEEEEEK.',
+    '.KKKKKKKKKKKKKKKKKK.'
+  ];
+
+  /* --- 分裂体：倒すと小さいのが2体に分かれる --- */
+  var SPLIT_BIG = [
+    '....KKKKKKKK....',
+    '..KKPPPPPPPPKK..',
+    '.KPPPPPPPPPPPPK.',
+    '.KPPWWPPPPWWPPK.',
+    'KPPPWKPPPPWKPPPK',
+    'KPPPPPPPPPPPPPPK',
+    'KPPPPPPPPPPPPPPK',
+    'KPPPPKKKKPPPPPPK',
+    '.KPPPPPPPPPPPPK.',
+    '.KPPPPPPPPPPPPK.',
+    '..KKPPPPPPPPKK..',
+    '....KKKKKKKK....'
+  ];
+  var SPLIT_SMALL = [
+    '..KKKKKK..',
+    '.KPPPPPPK.',
+    'KPPWPPWPPK',
+    'KPPKPPKPPK',
+    'KPPPPPPPPK',
+    'KPPPPPPPPK',
+    '.KPPPPPPK.',
+    '..KKKKKK..'
+  ];
+
+  /* --- 穴から飛び出してくる敵 --- */
+  var RISER = [
+    '......KK......',
+    '.....KOOK.....',
+    '....KOOOOK....',
+    '...KOOWWOOK...',
+    '...KOWKKWOK...',
+    '..KOOOOOOOOK..',
+    '..KOOOOOOOOK..',
+    '...KOOOOOOK...',
+    '....KOOOOK....',
+    '.....KOOK.....',
+    '....K.KK.K....',
+    '......KK......'
+  ];
+
+  /* --- 火炎噴出口（床の装置。炎は手続きで描く） --- */
+  var VENT = [
+    '..KKKKKKKKKK..',
+    '.KEEEEEEEEEEK.',
+    'KEEKKEEKKEEEEK',
+    'KEEEEEEEEEEEEK',
+    'KGGGGGGGGGGGGK',
+    'KKKKKKKKKKKKKK'
+  ];
+
   /* ======================================================================
      アイテムのドット絵
      ====================================================================== */
@@ -2249,6 +2432,13 @@ G.sprites = (function () {
     e.turret= [ S(TUR1, EPAL),  S(TUR2, EPAL) ];
     e.hop   = [ S(HOP1, EPAL),  S(HOP2, EPAL) ];
     e.spike = [ S(SPIKE, EPAL) ];
+    e.joe    = [ S(JOE_GUARD, EPAL), S(JOE_FIRE, EPAL) ];
+    e.bat    = [ S(BAT_HANG, EPAL),  S(BAT_FLY, EPAL) ];
+    e.crawl  = [ S(CRAWL1, EPAL),    S(CRAWL2, EPAL) ];
+    e.tank   = [ S(TANK1, EPAL),     S(TANK2, EPAL) ];
+    e.split  = [ S(SPLIT_BIG, EPAL), S(SPLIT_SMALL, EPAL) ];
+    e.riser  = [ S(RISER, EPAL) ];
+    e.vent   = [ S(VENT, EPAL) ];
 
     /* --- アイテム --- */
     var it = out.item;
@@ -2348,7 +2538,16 @@ G.sprites = (function () {
    タイル文字の意味:
      '.' 空間        '#' 壁/床       '=' 飛び乗れる床（下から通り抜け可）
      'L' はしご      '^' トゲ（即死）'I' 氷（滑る床）  'B' 壊せるブロック
-     'W' 水中(演出)  'D' ボス部屋の扉
+     'D' ボス部屋の扉
+     --- ここから時間で変化するギミック ---
+     '<' '>' ベルトコンベア（乗ると流される）
+     'o' 'p' 明滅ブロック（交互に出たり消えたりする）
+     'c'     崩れる床（乗ってしばらくすると落ちる。時間が経つと復活）
+     '~'     水（重力が弱まり、ジャンプが高くなる）
+
+   当たり判定は「文字」ではなく solidAt(tx,ty) で判定する。
+   明滅ブロックや崩れる床は同じ文字でも時刻によって固体だったり
+   そうでなかったりするため、時間を見て答える必要があるからだ。
 
    高速化のため、タイルの見た目は起動時に 16x16 のキャンバスへ焼いておき、
    毎フレームは drawImage するだけにしている。
@@ -2359,27 +2558,69 @@ G.tiles = (function () {
 
   var T = 16;                 // 1タイルのピクセル数
   var level = null;           // 現在のマップ
+  var clock = 0;              // ギミック用の時計（毎フレーム進める）
+  var crumbles = {};          // "tx,ty" -> 崩れ進行度
 
   /* ---------------- 判定用のタイル分類 ---------------- */
-  var SOLID   = { '#': 1, 'I': 1, 'B': 1, 'D': 1 };
+  var STATIC_SOLID = { '#': 1, 'I': 1, 'B': 1, 'D': 1, '<': 1, '>': 1 };
   var ONEWAY  = { '=': 1 };
   var LADDER  = { 'L': 1 };
   var HAZARD  = { '^': 1 };
   var SLIP    = { 'I': 1 };
+  var WATER   = { '~': 1 };
+  var BLINK   = { 'o': 0, 'p': 1 };       // 文字 -> グループ番号
+  var CONVEY  = { '<': -1, '>': 1 };      // 文字 -> 流れる向き
 
-  function isSolidChar(c)  { return !!SOLID[c]; }
+  /* --- 明滅ブロックの周期 --- */
+  var BLINK_CYCLE = 150;      // 1グループが出ている時間（フレーム）
+  var BLINK_WARN  = 40;       // 消える前に点滅して知らせる時間
+
+  /* --- 崩れる床のタイミング --- */
+  var CRUMBLE_HOLD   = 26;    // 乗ってから崩れ始めるまで
+  var CRUMBLE_GONE   = 150;   // 崩れてから復活するまで
+
+  function isSolidChar(c)  { return !!STATIC_SOLID[c] || c === 'o' || c === 'p' || c === 'c'; }
   function isOneWayChar(c) { return !!ONEWAY[c]; }
   function isLadderChar(c) { return !!LADDER[c]; }
   function isHazardChar(c) { return !!HAZARD[c]; }
+  function isWaterChar(c)  { return !!WATER[c]; }
+
+  /* 明滅ブロックが今その場にあるか */
+  function blinkOn(group) {
+    var phase = Math.floor(clock / BLINK_CYCLE) % 2;
+    return phase === group;
+  }
+  // 消える直前かどうか（描画で点滅させて予告する）
+  function blinkWarning(group) {
+    if (!blinkOn(group)) return false;
+    return (BLINK_CYCLE - (clock % BLINK_CYCLE)) < BLINK_WARN;
+  }
+
+  function crumbleKey(tx, ty) { return tx + ',' + ty; }
+  function crumbleState(tx, ty) { return crumbles[crumbleKey(tx, ty)]; }
+
+  /* ======================================================================
+     いま固体か？（すべての当たり判定はここを通る）
+     ====================================================================== */
+  function solidAt(tx, ty) {
+    if (tx < 0 || tx >= level.w) return true;    // 左右の画面外は壁
+    if (ty < 0 || ty >= level.h) return false;
+    var c = level.grid[ty][tx];
+    if (STATIC_SOLID[c]) return true;
+    if (c === 'o' || c === 'p') return blinkOn(BLINK[c]);
+    if (c === 'c') {
+      var st = crumbleState(tx, ty);
+      return !st || st.t < CRUMBLE_HOLD;         // 崩れ落ちるまでは乗れる
+    }
+    return false;
+  }
 
   /* ======================================================================
      レベルの生成
-     rows: 文字列の配列（1文字=1タイル）
      ====================================================================== */
   function makeLevel(rows, theme) {
     var h = rows.length, w = 0, y;
     for (y = 0; y < h; y++) if (rows[y].length > w) w = rows[y].length;
-    // 右端が短い行はスペースで埋めて矩形にそろえる
     var grid = [];
     for (y = 0; y < h; y++) {
       var line = rows[y];
@@ -2394,14 +2635,30 @@ G.tiles = (function () {
     };
   }
 
-  function setLevel(l) { level = l; }
+  function setLevel(l) {
+    level = l;
+    clock = 0;
+    crumbles = {};
+  }
   function getLevel()  { return level; }
+
+  // ステージ側から毎フレーム呼ぶ。ギミックの時間を進める
+  function tick() {
+    clock++;
+    for (var k in crumbles) {
+      if (!crumbles.hasOwnProperty(k)) continue;
+      var st = crumbles[k];
+      st.t++;
+      if (st.t > CRUMBLE_HOLD + CRUMBLE_GONE) delete crumbles[k];
+    }
+  }
+  function getClock() { return clock; }
 
   function at(tx, ty) {
     if (!level) return '.';
-    if (tx < 0 || tx >= level.w) return '#';      // 画面外の左右は壁扱い
-    if (ty < 0) return '.';                        // 上は抜けられる
-    if (ty >= level.h) return '.';                 // 下は落下death判定に任せる
+    if (tx < 0 || tx >= level.w) return '#';
+    if (ty < 0) return '.';
+    if (ty >= level.h) return '.';
     return level.grid[ty][tx];
   }
   function setAt(tx, ty, ch) {
@@ -2409,7 +2666,7 @@ G.tiles = (function () {
     level.grid[ty][tx] = ch;
   }
 
-  function solidAtPx(px, py) { return isSolidChar(at(Math.floor(px / T), Math.floor(py / T))); }
+  function solidAtPx(px, py) { return solidAt(Math.floor(px / T), Math.floor(py / T)); }
 
   /* 矩形が固体タイルに重なっているか */
   function boxSolid(x, y, w, h) {
@@ -2417,7 +2674,7 @@ G.tiles = (function () {
     var y0 = Math.floor(y / T), y1 = Math.floor((y + h - 1) / T);
     for (var ty = y0; ty <= y1; ty++)
       for (var tx = x0; tx <= x1; tx++)
-        if (isSolidChar(at(tx, ty))) return true;
+        if (solidAt(tx, ty)) return true;
     return false;
   }
 
@@ -2433,24 +2690,46 @@ G.tiles = (function () {
   function boxLadder(x, y, w, h) { return boxHas(x, y, w, h, isLadderChar); }
   function boxHazard(x, y, w, h) { return boxHas(x, y, w, h, isHazardChar); }
   function boxSlippery(x, y, w, h) { return boxHas(x, y, w, h, function (c) { return !!SLIP[c]; }); }
+  function boxWater(x, y, w, h) { return boxHas(x, y, w, h, isWaterChar); }
+
+  /* 足元のベルトコンベアの向き（-1 / 0 / 1）を返す */
+  function conveyorAt(x, y, w) {
+    var ty = Math.floor(y / T);
+    var x0 = Math.floor(x / T), x1 = Math.floor((x + w - 1) / T);
+    for (var tx = x0; tx <= x1; tx++) {
+      var d = CONVEY[at(tx, ty)];
+      if (d) return d;
+    }
+    return 0;
+  }
+
+  /* 足元の崩れる床に「乗った」ことを伝える */
+  function crumbleTouch(x, y, w) {
+    var ty = Math.floor(y / T);
+    var x0 = Math.floor(x / T), x1 = Math.floor((x + w - 1) / T);
+    for (var tx = x0; tx <= x1; tx++) {
+      if (at(tx, ty) !== 'c') continue;
+      var k = crumbleKey(tx, ty);
+      if (!crumbles[k]) {
+        crumbles[k] = { t: 0, tx: tx, ty: ty };
+        G.audio.sfx.blip();
+      }
+    }
+  }
 
   /* ======================================================================
      エンティティの移動（X と Y を分けて解決する定番方式）
-     ent は { x, y, w, h, vx, vy } を持つ。x,y は左上。
      ====================================================================== */
   function moveX(e, dx) {
     if (dx === 0) return 0;
     e.x += dx;
     if (!boxSolid(e.x, e.y, e.w, e.h)) return 0;
-    // めり込んだのでタイル境界へ押し戻す
     if (dx > 0) e.x = Math.floor((e.x + e.w) / T) * T - e.w - 0.001;
     else        e.x = (Math.floor(e.x / T) + 1) * T + 0.001;
     e.vx = 0;
-    return dx > 0 ? 1 : -1;   // 壁に当たった向きを返す
+    return dx > 0 ? 1 : -1;
   }
 
-  /* moveY は「飛び乗れる床」も見る。
-     下向きに動いていて、直前の足元が床の上にあった時だけ着地する。 */
   function moveY(e, dy) {
     if (dy === 0) return 0;
     var prevBottom = e.y + e.h;
@@ -2470,7 +2749,7 @@ G.tiles = (function () {
         var isTop = isOneWayChar(c) || (isLadderChar(c) && !isLadderChar(at(tx, y1 - 1)) && e.canStandLadderTop !== false);
         if (isTop) {
           var top = y1 * T;
-          if (prevBottom <= top + 1) {   // 直前は床より上にいた＝乗れる
+          if (prevBottom <= top + 1) {
             e.y = top - e.h - 0.001; e.vy = 0; return 1;
           }
         }
@@ -2493,9 +2772,20 @@ G.tiles = (function () {
     return false;
   }
 
+  /* めり込み解除：明滅ブロックが体の中に出現した時などの保険。
+     上へ少しずつ逃がして、それでも駄目なら下へ逃がす。            */
+  function unstick(e, maxPush) {
+    maxPush = maxPush || 26;
+    if (!boxSolid(e.x, e.y, e.w, e.h)) return false;
+    for (var d = 1; d <= maxPush; d++) {
+      if (!boxSolid(e.x, e.y - d, e.w, e.h)) { e.y -= d; return true; }
+      if (!boxSolid(e.x, e.y + d, e.w, e.h)) { e.y += d; return true; }
+    }
+    return false;
+  }
+
   /* ======================================================================
      タイルの見た目を焼く
-     theme = { solid, solidLo, solidHi, edge, deco, ladder, spike, ice, brk }
      ====================================================================== */
   function px(c, x, y, w, h, col) { c.fillStyle = col; c.fillRect(x, y, w, h); }
 
@@ -2507,9 +2797,7 @@ G.tiles = (function () {
 
   function bakeSolid(theme, topEdge) {
     var cv = newTile(), c = cv.getContext('2d');
-    // ベース
     px(c, 0, 0, T, T, theme.solid);
-    // レンガ模様（上下2段の互い違い）
     px(c, 0, 0, T, 1, theme.solidHi);
     px(c, 0, T - 1, T, 1, theme.solidLo);
     px(c, 0, 7, T, 1, theme.solidLo);
@@ -2518,7 +2806,6 @@ G.tiles = (function () {
     px(c, 8, 0, 1, 7, theme.solidHi);
     px(c, 15, 9, 1, 7, theme.solidLo);
     px(c, 0, 9, 1, 7, theme.solidHi);
-    // 小さなリベット（メカ感）
     px(c, 3, 3, 1, 1, theme.deco);
     px(c, 12, 12, 1, 1, theme.deco);
     if (topEdge) {
@@ -2553,17 +2840,15 @@ G.tiles = (function () {
 
   function bakeSpike(theme) {
     var cv = newTile(), c = cv.getContext('2d');
-    // 三角のトゲを4本
     for (var i = 0; i < 4; i++) {
       var bx = i * 4;
       for (var y = 0; y < 8; y++) {
         var wdt = Math.max(1, Math.round((y + 1) / 2));
-        px(c, bx + 2 - Math.floor(wdt / 2), T - 8 + (7 - y) + 0, wdt, 1, theme.spike);
+        px(c, bx + 2 - Math.floor(wdt / 2), T - 8 + (7 - y), wdt, 1, theme.spike);
       }
     }
     px(c, 0, T - 4, T, 4, theme.spikeBase || '#5C5C5C');
     px(c, 0, T - 4, T, 1, '#BCBCBC');
-    // 先端のハイライト
     for (i = 0; i < 4; i++) px(c, i * 4 + 2, 1, 1, 2, '#FCFCFC');
     return cv;
   }
@@ -2586,7 +2871,6 @@ G.tiles = (function () {
     px(c, 0, T - 1, T, 1, '#5C2A10');
     px(c, 0, 0, 1, T, '#D8A860');
     px(c, T - 1, 0, 1, T, '#5C2A10');
-    // ひび
     px(c, 5, 3, 1, 4, '#5C2A10'); px(c, 6, 7, 1, 3, '#5C2A10');
     px(c, 10, 2, 1, 3, '#5C2A10'); px(c, 9, 10, 1, 4, '#5C2A10');
     return cv;
@@ -2603,8 +2887,82 @@ G.tiles = (function () {
     return cv;
   }
 
+  /* --- ベルトコンベア：矢印の向きで流れる方向が分かる --- */
+  function bakeConveyor(theme, dir, frame) {
+    var cv = newTile(), c = cv.getContext('2d');
+    px(c, 0, 0, T, T, '#3C3C4C');
+    px(c, 0, 0, T, 3, '#7C7C8C');
+    px(c, 0, T - 3, T, 3, '#7C7C8C');
+    px(c, 0, 3, T, 1, '#1C1C28');
+    // 動いて見えるよう、フレームごとに矢印をずらす
+    for (var i = -1; i < 3; i++) {
+      var x = ((i * 8) + frame * 4 + 16) % 16;
+      for (var k = 0; k < 4; k++) {
+        var xx = dir > 0 ? x + k : x + 3 - k;
+        px(c, xx, 6 + k, 1, 1, theme.edge);
+        px(c, xx, 12 - k, 1, 1, theme.edge);
+      }
+    }
+    px(c, 0, 0, T, 1, '#BCBCC8');
+    return cv;
+  }
+
+  /* --- 明滅ブロック：出ているとき／消えているときの2種 --- */
+  function bakeBlink(theme, on) {
+    var cv = newTile(), c = cv.getContext('2d');
+    if (on) {
+      px(c, 0, 0, T, T, '#101018');
+      px(c, 1, 1, T - 2, T - 2, theme.edge);
+      px(c, 2, 2, T - 4, 3, '#FCFCFC');
+      px(c, 2, T - 5, T - 4, 2, '#101018');
+      px(c, 6, 6, 4, 4, '#FCFCFC');
+    } else {
+      // 消えている間は輪郭だけ残して「ここに出る」と伝える
+      for (var i = 0; i < T; i += 4) {
+        px(c, i, 0, 2, 1, theme.edge);
+        px(c, i, T - 1, 2, 1, theme.edge);
+        px(c, 0, i, 1, 2, theme.edge);
+        px(c, T - 1, i, 1, 2, theme.edge);
+      }
+    }
+    return cv;
+  }
+
+  /* --- 崩れる床：ひび割れの進行を3段階で --- */
+  function bakeCrumble(theme, stage) {
+    var cv = newTile(), c = cv.getContext('2d');
+    px(c, 0, 0, T, T, theme.solid);
+    px(c, 0, 0, T, 2, theme.edge);
+    px(c, 0, T - 1, T, 1, theme.solidLo);
+    if (stage >= 1) {
+      px(c, 5, 2, 1, 6, '#101018'); px(c, 6, 8, 1, 5, '#101018');
+      px(c, 11, 3, 1, 5, '#101018');
+    }
+    if (stage >= 2) {
+      px(c, 2, 6, 3, 1, '#101018'); px(c, 9, 9, 5, 1, '#101018');
+      px(c, 12, 10, 1, 5, '#101018'); px(c, 3, 11, 1, 4, '#101018');
+    }
+    return cv;
+  }
+
+  /* --- 水：半透明の青。上端は水面の線 --- */
+  function bakeWater(theme, surface) {
+    var cv = newTile(), c = cv.getContext('2d');
+    c.globalAlpha = 0.42;
+    px(c, 0, 0, T, T, '#0058F8');
+    c.globalAlpha = 0.25;
+    px(c, 0, 0, T, 4, '#3CBCFC');
+    c.globalAlpha = 1;
+    if (surface) {
+      px(c, 0, 0, T, 1, '#BCE8FC');
+      px(c, 2, 2, 4, 1, '#FCFCFC');
+      px(c, 10, 3, 3, 1, '#BCE8FC');
+    }
+    return cv;
+  }
+
   function buildTileset(theme) {
-    return {
+    var ts = {
       '#':  bakeSolid(theme, false),
       '#T': bakeSolid(theme, true),
       '=':  bakeOneWay(theme),
@@ -2612,8 +2970,22 @@ G.tiles = (function () {
       '^':  bakeSpike(theme),
       'I':  bakeIce(theme),
       'B':  bakeBreak(theme),
-      'D':  bakeDoor(theme)
+      'D':  bakeDoor(theme),
+      'oOn': bakeBlink(theme, true),
+      'oOff': bakeBlink(theme, false),
+      'cA': bakeCrumble(theme, 0),
+      'cB': bakeCrumble(theme, 1),
+      'cC': bakeCrumble(theme, 2),
+      '~':  bakeWater(theme, false),
+      '~S': bakeWater(theme, true)
     };
+    // コンベアはアニメーションするので4コマ焼く
+    ts.convL = []; ts.convR = [];
+    for (var f = 0; f < 4; f++) {
+      ts.convL.push(bakeConveyor(theme, -1, f));
+      ts.convR.push(bakeConveyor(theme, 1, f));
+    }
+    return ts;
   }
 
   /* ======================================================================
@@ -2626,20 +2998,50 @@ G.tiles = (function () {
     var x1 = Math.min(level.w - 1, Math.floor((camX + gfx.W) / T));
     var y0 = Math.max(0, Math.floor(camY / T));
     var y1 = Math.min(level.h - 1, Math.floor((camY + gfx.H) / T));
+    var convFrame = Math.floor(clock / 5) % 4;
 
     for (var ty = y0; ty <= y1; ty++) {
       var row = level.grid[ty];
       for (var tx = x0; tx <= x1; tx++) {
         var c = row[tx];
         if (c === '.' || c === ' ') continue;
-        var img;
+        var img = null, alpha = 1;
+
         if (c === '#') {
-          // 上に何も無い床は「縁取り」バージョンにして立体感を出す
-          img = isSolidChar(at(tx, ty - 1)) ? ts['#'] : ts['#T'];
+          img = solidAt(tx, ty - 1) ? ts['#'] : ts['#T'];
+        } else if (c === '<') {
+          img = ts.convL[(convFrame + tx) % 4];
+        } else if (c === '>') {
+          img = ts.convR[(convFrame + tx) % 4];
+        } else if (c === 'o' || c === 'p') {
+          var g = BLINK[c];
+          if (blinkOn(g)) {
+            img = ts.oOn;
+            // 消える直前は点滅させて予告する
+            if (blinkWarning(g) && Math.floor(clock / 4) % 2 === 0) alpha = 0.35;
+          } else {
+            img = ts.oOff;
+          }
+        } else if (c === 'c') {
+          var cs = crumbleState(tx, ty);
+          if (!cs) img = ts.cA;
+          else if (cs.t < CRUMBLE_HOLD * 0.5) img = ts.cB;
+          else if (cs.t < CRUMBLE_HOLD) img = ts.cC;
+          else img = null;                    // 崩れて消えている
+        } else if (c === '~') {
+          img = (at(tx, ty - 1) === '~') ? ts['~'] : ts['~S'];
         } else {
           img = ts[c];
         }
-        if (img) ctx.drawImage(img, Math.round(tx * T - camX), Math.round(ty * T - camY));
+
+        if (!img) continue;
+        if (alpha !== 1) {
+          ctx.save(); ctx.globalAlpha = alpha;
+          ctx.drawImage(img, Math.round(tx * T - camX), Math.round(ty * T - camY));
+          ctx.restore();
+        } else {
+          ctx.drawImage(img, Math.round(tx * T - camX), Math.round(ty * T - camY));
+        }
       }
     }
   }
@@ -2647,12 +3049,17 @@ G.tiles = (function () {
   return {
     T: T,
     makeLevel: makeLevel, setLevel: setLevel, getLevel: getLevel,
-    at: at, setAt: setAt,
+    tick: tick, getClock: getClock,
+    at: at, setAt: setAt, solidAt: solidAt,
     isSolidChar: isSolidChar, isLadderChar: isLadderChar, isHazardChar: isHazardChar,
-    boxSolid: boxSolid, boxLadder: boxLadder, boxHazard: boxHazard, boxSlippery: boxSlippery,
+    isWaterChar: isWaterChar,
+    boxSolid: boxSolid, boxLadder: boxLadder, boxHazard: boxHazard,
+    boxSlippery: boxSlippery, boxWater: boxWater,
+    conveyorAt: conveyorAt, crumbleTouch: crumbleTouch,
     solidAtPx: solidAtPx,
-    moveX: moveX, moveY: moveY, onGround: onGround,
-    draw: draw
+    moveX: moveX, moveY: moveY, onGround: onGround, unstick: unstick,
+    draw: draw,
+    BLINK_CYCLE: BLINK_CYCLE
   };
 })();
 
@@ -2726,7 +3133,8 @@ G.stages = (function () {
       solid: '#3C3C8C', solidHi: '#6868C8', solidLo: '#202050',
       edge: '#F8D878', deco: '#00E8D8', ladder: '#F8D878',
       spike: '#BCBCBC', spikeBase: '#3C3C8C', ice: '#3CBCFC', brk: '#5C5C9C',
-      mix: ['met', 'turret', 'fly', 'met', 'turret'],
+      mix: ['met', 'turret', 'fly', 'joe', 'crawl'],
+      gimmicks: ['conveyor', 'blinkBridge'],
       drawBg: function (camX, camY, t) {
         gfx.clear(this.sky);
         starfield(camX, camY, 46, 0.12, ['#FCFCFC', '#F8D878', '#3CBCFC']);
@@ -2753,7 +3161,8 @@ G.stages = (function () {
       solid: '#8C2820', solidHi: '#C85838', solidLo: '#500810',
       edge: '#FC9838', deco: '#F8D878', ladder: '#FC9838',
       spike: '#FCE0A8', spikeBase: '#8C2820', ice: '#3CBCFC', brk: '#A04030',
-      mix: ['met', 'hop', 'fly', 'turret', 'hop'],
+      mix: ['met', 'hop', 'fly', 'tank', 'riser'],
+      gimmicks: ['ventRun', 'crumbleRun'],
       drawBg: function (camX, camY, t) {
         gfx.clear(this.sky);
         // 奥の溶岩の照り返し（脈打つ）
@@ -2783,7 +3192,8 @@ G.stages = (function () {
       solid: '#4878A8', solidHi: '#88B8D8', solidLo: '#204058',
       edge: '#BCE8FC', deco: '#FCFCFC', ladder: '#BCE8FC',
       spike: '#FCFCFC', spikeBase: '#4878A8', ice: '#5CC8FC', brk: '#6890B8',
-      mix: ['met', 'fly', 'hop', 'spike', 'fly'],
+      mix: ['met', 'fly', 'hop', 'spike', 'bat'],
+      gimmicks: ['waterPool', 'blinkBridge'],
       iceFloor: 0.35,      // 床の35%を氷にする
       drawBg: function (camX, camY, t) {
         gfx.clear(this.sky);
@@ -2812,7 +3222,8 @@ G.stages = (function () {
       solid: '#3C6C3C', solidHi: '#68A868', solidLo: '#1C3C1C',
       edge: '#B8F818', deco: '#F8D878', ladder: '#B8F818',
       spike: '#BCBCBC', spikeBase: '#3C6C3C', ice: '#3CBCFC', brk: '#5C8C4C',
-      mix: ['met', 'turret', 'hop', 'fly', 'spike'],
+      mix: ['met', 'turret', 'hop', 'split', 'tank'],
+      gimmicks: ['crusherHall', 'conveyor'],
       drawBg: function (camX, camY, t) {
         gfx.clear(this.sky);
         skyline(camX, 0.2, gfx.H - 24, 34, 70, '#14301C', 4);
@@ -2839,7 +3250,8 @@ G.stages = (function () {
       solid: '#7C7C8C', solidHi: '#BCBCC8', solidLo: '#4C4C5C',
       edge: '#00E8D8', deco: '#D82800', ladder: '#BCBCBC',
       spike: '#FCFCFC', spikeBase: '#7C7C8C', ice: '#3CBCFC', brk: '#8C8C9C',
-      mix: ['fly', 'met', 'spike', 'turret', 'fly'],
+      mix: ['fly', 'met', 'spike', 'joe', 'bat'],
+      gimmicks: ['crusherHall', 'blinkBridge'],
       drawBg: function (camX, camY, t) {
         gfx.clear(this.sky);
         // 回る歯車のシルエット
@@ -2867,7 +3279,8 @@ G.stages = (function () {
       solid: '#8C5828', solidHi: '#C89050', solidLo: '#4C2C10',
       edge: '#FCE0A8', deco: '#FC9838', ladder: '#D8A860',
       spike: '#BCBCBC', spikeBase: '#8C5828', ice: '#3CBCFC', brk: '#A06830',
-      mix: ['met', 'spike', 'hop', 'met', 'turret'],
+      mix: ['met', 'spike', 'hop', 'crawl', 'tank'],
+      gimmicks: ['crumbleRun', 'crusherHall'],
       breakable: true,
       drawBg: function (camX, camY, t) {
         gfx.clear(this.sky);
@@ -2910,12 +3323,15 @@ G.stages = (function () {
   /* テーマの敵構成からランダムに1体置く（種類ごとに置き方が違う） */
   function spawnMixed(S, tx, groundRow) {
     var type = U.pick(S.theme.mix);
-    if (type === 'fly') {
-      // 飛行敵は空中に
-      S.spawns.push({ type: 'fly', x: tx * T + 8, y: (groundRow - U.rndInt(3, 6)) * T, opts: {} });
+    if (type === 'fly' || type === 'split') {
+      // 飛ぶ／漂う敵は空中に置く
+      S.spawns.push({ type: type, x: tx * T + 8, y: (groundRow - U.rndInt(3, 6)) * T, opts: {} });
     } else if (type === 'turret') {
       // 砲台は床の上に固定
       S.spawns.push({ type: 'turret', x: tx * T + 8, y: (groundRow - 1) * T + 4, opts: {} });
+    } else if (type === 'bat') {
+      // ぶら下がり敵は高いところに吊るす
+      S.spawns.push({ type: 'bat', x: tx * T + 8, y: (groundRow - U.rndInt(6, 9)) * T, opts: {} });
     } else {
       addEnemy(S, type, tx, groundRow);
     }
@@ -3103,6 +3519,115 @@ G.stages = (function () {
       S.x += len;
     },
 
+
+    /* --- ここからギミック系のパターン --- */
+
+    /* ベルトコンベア：流れに乗ると速く、逆らうと進みにくい */
+    conveyor: function (S) {
+      var pre = 2, w = 9, post = 2, i;
+      for (i = 0; i < pre; i++) fillCol(S, S.x + i, S.gl);
+      var dir = U.rnd() < 0.5 ? '<' : '>';
+      for (i = 0; i < w; i++) {
+        fillCol(S, S.x + pre + i, S.gl);
+        put(S, S.x + pre + i, S.gl, dir);
+      }
+      for (i = 0; i < post; i++) fillCol(S, S.x + pre + w + i, S.gl);
+      populate(S, S.x + pre, S.x + pre + w, S.gl, 2);
+      S.x += pre + w + post;
+    },
+
+    /* 明滅ブロックの橋。
+       'o' と 'p' を交互に置くので、どちらの位相でも1つおきに足場があり、
+       常に2タイル跳びで渡り切れる（＝運が悪くて詰むことがない）。   */
+    blinkBridge: function (S) {
+      var pre = 3, w = 5, post = 3, i;
+      for (i = 0; i < pre; i++) fillCol(S, S.x + i, S.gl);
+      for (i = 0; i < w; i++) put(S, S.x + pre + i, LH - 1, '^');
+      for (i = 0; i < w; i++) {
+        put(S, S.x + pre + i, S.gl - 1, (i % 2 === 0) ? 'o' : 'p');
+      }
+      for (i = 0; i < post; i++) fillCol(S, S.x + pre + w + i, S.gl);
+      S.x += pre + w + post;
+    },
+
+    /* 崩れる床：乗ると崩れ始めるので立ち止まれない。時間が経つと復活する */
+    crumbleRun: function (S) {
+      var pre = 3, w = 6, post = 3, i;
+      for (i = 0; i < pre; i++) fillCol(S, S.x + i, S.gl);
+      for (i = 0; i < w; i++) {
+        put(S, S.x + pre + i, LH - 1, '^');
+        put(S, S.x + pre + i, S.gl, 'c');
+      }
+      for (i = 0; i < post; i++) fillCol(S, S.x + pre + w + i, S.gl);
+      S.x += pre + w + post;
+    },
+
+    /* 水たまり：中では重力が弱まり、ゆっくり沈んで高く跳べる。
+       深さは3タイル。水中ジャンプ(約67px)で必ず縁まで戻れる深さにしてある。 */
+    waterPool: function (S) {
+      var pre = 3, w = 8, post = 3, depth = 3, i, y;
+      for (i = 0; i < pre; i++) fillCol(S, S.x + i, S.gl);
+      for (i = 0; i < w; i++) {
+        fillCol(S, S.x + pre + i, S.gl + depth);
+        for (y = S.gl; y < S.gl + depth; y++) put(S, S.x + pre + i, y, '~');
+      }
+      for (i = 0; i < post; i++) fillCol(S, S.x + pre + w + i, S.gl);
+      S.spawns.push({ type: 'riser', x: (S.x + pre + Math.floor(w / 2)) * T,
+                      y: (S.gl + depth) * T, opts: {} });
+      S.items.push({ kind: 'wpBig', x: (S.x + pre + 1) * T, y: (S.gl + depth - 1) * T + 8 });
+      S.x += pre + w + post;
+    },
+
+    /* 火炎噴出口の通路：噴き上がる炎の合間を抜ける */
+    ventRun: function (S) {
+      var len = 13, i;
+      for (i = 0; i < len; i++) fillCol(S, S.x + i, S.gl);
+      for (i = 2; i < len - 2; i += 4) {
+        S.spawns.push({ type: 'vent', x: (S.x + i) * T + 8, y: S.gl * T,
+                        opts: { phase: i * 31, height: 56 } });
+      }
+      populate(S, S.x + 1, S.x + len, S.gl, 1);
+      S.x += len;
+    },
+
+    /* プレス機の広間：落ちてくる圧壊機の間をすり抜ける */
+    crusherHall: function (S) {
+      var len = 15, i, y;
+      for (i = 0; i < len; i++) {
+        fillCol(S, S.x + i, S.gl);
+        for (y = 0; y < S.gl - 7; y++) put(S, S.x + i, y, '#');
+      }
+      for (i = 3; i < len - 3; i += 6) {
+        S.spawns.push({ type: 'crusher', x: (S.x + i) * T, y: (S.gl - 7) * T,
+                        opts: { w: 40, dropY: S.gl * T - 22, phase: i * 21 } });
+      }
+      populate(S, S.x + 1, S.x + len, S.gl, 1);
+      S.x += len;
+    },
+
+    /* 関所：盾持ちと砲台が守る。盾の正面からは弾が通らない */
+    guardPost: function (S) {
+      var len = 11, i;
+      for (i = 0; i < len; i++) fillCol(S, S.x + i, S.gl);
+      addEnemy(S, 'joe', S.x + 5, S.gl);
+      S.spawns.push({ type: 'turret', x: (S.x + 8) * T, y: (S.gl - 1) * T + 4, opts: {} });
+      put(S, S.x + 2, S.gl - HOP, '='); put(S, S.x + 3, S.gl - HOP, '=');
+      S.items.push({ kind: 'hpBig', x: (S.x + 2.5) * T, y: (S.gl - HOP - 1) * T + 8 });
+      S.x += len;
+    },
+
+    /* 宙に浮くブロック：壁這いがぐるぐる回っている */
+    crawlBlocks: function (S) {
+      var len = 12, i, y;
+      for (i = 0; i < len; i++) fillCol(S, S.x + i, S.gl);
+      for (i = 3; i < 7; i++)
+        for (y = S.gl - 6; y < S.gl - 3; y++) put(S, S.x + i, y, '#');
+      S.spawns.push({ type: 'crawl', x: (S.x + 4) * T, y: (S.gl - 6) * T, opts: {} });
+      S.spawns.push({ type: 'crawl', x: (S.x + 6) * T, y: (S.gl - 6) * T, opts: { dir: -1 } });
+      populate(S, S.x + 8, S.x + len, S.gl, 1);
+      S.x += len;
+    },
+
     /* 動く足場で大穴を渡る */
     movingGap: function (S) {
       var pre = 3, w = 8, post = 3, i;
@@ -3138,7 +3663,10 @@ G.stages = (function () {
   var WEIGHTS = {
     flat: 5, pit: 4, platforms: 3, stepUp: 3, stepDown: 3,
     spikeRun: 2, ladder: 3, corridor: 2, bigPit: 2, movingGap: 2, tower: 3,
-    breakWall: 3
+    breakWall: 3,
+    // ギミック系（テーマごとに使えるものが違う）
+    conveyor: 3, blinkBridge: 3, crumbleRun: 3, waterPool: 3,
+    ventRun: 3, crusherHall: 3, guardPost: 3, crawlBlocks: 3
   };
   function pickPattern(names) {
     var total = 0, i;
@@ -3154,7 +3682,8 @@ G.stages = (function () {
   /* ======================================================================
      ステージ生成
      ====================================================================== */
-  var RISKY = { pit: 1, bigPit: 1, spikeRun: 1, movingGap: 1 };
+  var RISKY = { pit: 1, bigPit: 1, spikeRun: 1, movingGap: 1,
+                blinkBridge: 1, crumbleRun: 1, crusherHall: 1 };
 
   function build(key) {
     var theme = THEMES[key];
@@ -3177,20 +3706,35 @@ G.stages = (function () {
 
     /* --- 中盤：パターンを並べる --- */
     var names = ['flat', 'pit', 'platforms', 'stepUp', 'spikeRun',
-                 'stepDown', 'ladder', 'bigPit', 'corridor', 'movingGap', 'tower'];
+                 'stepDown', 'ladder', 'bigPit', 'corridor', 'movingGap', 'tower',
+                 'guardPost', 'crawlBlocks'];
     if (theme.breakable) names.push('breakWall');
+    // テーマごとの目玉ギミック（ステージの性格づけ）
+    if (theme.gimmicks) names = names.concat(theme.gimmicks);
 
-    var endX = LW - ARENA_W - 16;
+    // 扉とアリーナの位置を先に決めておく（通路の敷き直しに使う）
+    var doorTx = LW - ARENA_W - 2;
+    var arenaTx0 = LW - ARENA_W;
+    var arenaTx1 = LW - 2;
+
+    // パターンを並べ終える位置。一番幅の広いパターン(15)が来ても
+    // 扉を踏み越えないよう、扉から十分手前で打ち切る
+    var endX = doorTx - 18;
     var checkpoint = null;
     var last = '';
     var guard = 0;
-    var needBreak = !!theme.breakable;   // 壊せるブロックを必ず1回は出す
+
+    /* そのステージの「目玉ギミック」は運任せにせず、必ず1回は出す。
+       ステージを等間隔に区切って、区切りを越えたら未登場のものを強制配置する。 */
+    var mustHave = (theme.gimmicks || []).slice();
+    if (theme.breakable) mustHave.push('breakWall');
+    var slot = (endX - S.x) / (mustHave.length + 1);
+    var nextForce = S.x + slot;
 
     while (S.x < endX && guard++ < 300) {
       var n = pickPattern(names);
-      // ステージ中盤に来てもまだ出ていなければ強制的に配置する
-      if (needBreak && S.x > LW * 0.34 && endX - S.x > 20) { n = 'breakWall'; needBreak = false; }
-      else if (n === 'breakWall') needBreak = false;
+
+      // --- 抽選結果に対する調整 ---
       // 同じパターンの連続と、危険パターンの連続は避ける
       if (n === last) n = 'flat';
       if (RISKY[last] && RISKY[n]) n = 'flat';
@@ -3198,6 +3742,19 @@ G.stages = (function () {
       if (endX - S.x < 14) n = 'flat';
       // 高いところで tower/platforms を始めると天井を突き抜けるので調整
       if ((n === 'tower' || n === 'platforms') && S.gl < 11) n = 'stepDown';
+
+      /* --- 未登場の目玉ギミックを強制配置 ---
+         上の調整より後に行う。先に強制すると、直後の
+         「危険パターンの連続回避」で平地に化けて消えてしまうため。
+         危険パターンの直後は見送り、次の周回で改めて置く。          */
+      if (mustHave.length && S.x >= nextForce && endX - S.x > 22 && !RISKY[last]) {
+        n = mustHave.shift();
+        nextForce = S.x + slot;
+      } else {
+        // 抽選で先に出たものは「未登場リスト」から外す
+        var mi = mustHave.indexOf(n);
+        if (mi >= 0) mustHave.splice(mi, 1);
+      }
       PATTERNS[n](S);
       last = n;
 
@@ -3208,23 +3765,36 @@ G.stages = (function () {
       }
     }
 
-    /* --- 地面の高さを基準に戻してボス前の通路へ --- */
+    /* --- 地面の高さを基準に戻す --- */
     while (S.gl < GY) {
       S.gl += HOP;
       for (x = 0; x < 3; x++) fillCol(S, S.x + x, S.gl);
       S.x += 3;
     }
     S.gl = GY;
-    while (S.x < LW - ARENA_W - 2) { fillCol(S, S.x, S.gl); S.x++; }
+
+    /* --- ボス前の通路とボス部屋を作り直す ---
+       パターンの並びがどこで終わっても壊れないよう、
+       この区間は一度まっさらに消してから引き直す。
+       （以前はここが上書きされず、扉の手前に穴が開くことがあった）  */
+    var corridorStart = Math.min(S.x, doorTx - 12);
+    for (x = corridorStart; x < LW; x++) {
+      for (y = 0; y < LH; y++) g[y][x] = '.';
+    }
+    // 扉までは平らな床
+    for (x = corridorStart; x < doorTx; x++) fillCol(S, x, GY);
+    S.x = doorTx;
+
+    // 通路に紛れ込んだ敵やアイテムは取り除く（消した地形の上に残さない）
+    var cutPx = corridorStart * T;
+    S.spawns = S.spawns.filter(function (sp) { return sp.x < cutPx; });
+    S.items  = S.items.filter(function (it) { return it.x < cutPx; });
 
     // ボス前の補給ゾーン
-    S.items.push({ kind: 'hpBig', x: (LW - ARENA_W - 9) * T, y: (GY - 1) * T + 8 });
-    S.items.push({ kind: 'wpBig', x: (LW - ARENA_W - 6) * T, y: (GY - 1) * T + 8 });
+    S.items.push({ kind: 'hpBig', x: (doorTx - 7) * T, y: (GY - 1) * T + 8 });
+    S.items.push({ kind: 'wpBig', x: (doorTx - 4) * T, y: (GY - 1) * T + 8 });
 
     /* --- 扉とボス部屋 --- */
-    var doorTx = LW - ARENA_W - 2;
-    var arenaTx0 = LW - ARENA_W;
-    var arenaTx1 = LW - 2;
 
     // 扉（幅2・高さ4）とその上の壁
     for (y = GY - 4; y < GY; y++) { g[y][doorTx] = 'D'; g[y][doorTx + 1] = 'D'; }
@@ -3934,6 +4504,15 @@ G.Player = (function () {
   var GRAV      = 0.235;  // 少しだけ軽くして滞空時間を伸ばしている
   var MAX_FALL  = 7.0;
   var CLIMB_SP  = 1.20;
+  /* --- 水中：重力が弱まり、ゆっくり沈み、ジャンプが高くなる --- */
+  /* 水中は重力が弱いので、ジャンプ初速はむしろ下げないと跳びすぎる。
+     高さ = 初速^2 / (2 * 重力) なので、重力を 0.55 倍にしたぶん
+     初速を 0.85 倍にして、地上の約1.3倍の高さに収めている。      */
+  var WATER_GRAV = 0.55;   // 重力の倍率
+  var WATER_FALL = 0.45;   // 落下上限の倍率（ゆっくり沈む）
+  var WATER_JUMP = 0.85;   // ジャンプ初速の倍率
+  /* --- ベルトコンベアに乗ったときに流される速さ --- */
+  var BELT_PUSH  = 0.78;
   var ICE_ACCEL = 0.09;   // 氷の上での加速
   var ICE_FRIC  = 0.985;  // 氷の上での減速（1に近いほど滑る）
   var HURT_TIME = 22;     // のけぞって動けない時間
@@ -3971,6 +4550,8 @@ G.Player = (function () {
     this.deathTimer = 0;
 
     this.onIce = false;
+    this.inWater = false;
+    this.belt = 0;
     this.climbing = false;
     this.ladderX = 0;
 
@@ -4178,8 +4759,15 @@ G.Player = (function () {
       }
     }
 
-    /* ================= 横移動 ================= */
+    /* ================= 足元と周囲の状態を調べる ================= */
     this.onIce = TL.boxSlippery(this.x, this.y + this.h, this.w, 2);
+    this.inWater = TL.boxWater(this.x + 2, this.y + 4, this.w - 4, this.h - 6);
+    // ベルトコンベアは足元1px下を見る（乗っているときだけ流される）
+    this.belt = this.onGround ? TL.conveyorAt(this.x, this.y + this.h + 1, this.w) : 0;
+    // 崩れる床に乗ったら、崩壊のカウントを始めさせる
+    if (this.onGround) TL.crumbleTouch(this.x, this.y + this.h + 1, this.w);
+
+    /* ================= 横移動 ================= */
 
     if (canAct) {
       var ax = 0;
@@ -4203,20 +4791,31 @@ G.Player = (function () {
 
     /* ================= ジャンプ ================= */
     if (canAct && inp.pressed.jump && this.onGround) {
-      this.vy = JUMP_V;
+      this.vy = JUMP_V * (this.inWater ? WATER_JUMP : 1);
       this.onGround = false;
       this.state = 'jump';
       A.sfx.jump();
       G.fx.dust(this.cx(), this.y + this.h, 0);
     }
     // ボタンを離したら上昇を打ち切る＝ジャンプの高さを調整できる
-    if (!inp.held.jump && this.vy < -1.6) this.vy = -1.6;
+    var cut = this.inWater ? -2.2 : -1.6;
+    if (!inp.held.jump && this.vy < cut) this.vy = cut;
 
-    /* ================= 重力 ================= */
-    this.vy = Math.min(this.vy + GRAV, MAX_FALL);
+    /* ================= 重力（水中は弱い） ================= */
+    var grav = this.inWater ? GRAV * WATER_GRAV : GRAV;
+    var maxFall = this.inWater ? MAX_FALL * WATER_FALL : MAX_FALL;
+    this.vy = Math.min(this.vy + grav, maxFall);
 
-    /* ================= 移動の適用 ================= */
-    TL.moveX(this, this.vx);
+    // 水中では泡が立ちのぼる
+    if (this.inWater && this.animT % 14 === 0) {
+      G.fx.part({ x: this.cx() + U.rndRange(-5, 5), y: this.y + U.rndRange(0, 10),
+        vx: U.rndRange(-0.15, 0.15), vy: -U.rndRange(0.4, 0.9),
+        life: U.rndInt(24, 44), size: U.rndInt(1, 3),
+        color: '#BCE8FC', type: 'circle', shrink: false });
+    }
+
+    /* ================= 移動の適用（コンベアの分だけ流される） ================= */
+    TL.moveX(this, this.vx + this.belt * BELT_PUSH);
     this.wasGround = this.onGround;
     var hitY = TL.moveY(this, this.vy);
     this.onGround = (hitY === 1) || TL.onGround(this);
@@ -4299,6 +4898,9 @@ G.Player = (function () {
 
   /* ---------------- 移動後の共通処理（トゲ・落下死） ---------------- */
   P.postUpdate = function (st) {
+    // 明滅ブロックが体の中に出現した場合などの保険。上下に少し逃がす
+    TL.unstick(this);
+
     // トゲに触れたら即死（原作準拠）
     if (TL.boxHazard(this.x + 2, this.y + 2, this.w - 4, this.h - 4)) {
       this.hp = 0;
@@ -4447,6 +5049,10 @@ G.enemies = (function () {
     A.sfx.hit();
     return true;
   };
+
+  /* この弾を弾き返すか。盾持ちのように向きで変わる敵が上書きする。
+     stage.js の当たり判定から呼ばれる。                                */
+  E.blocks = function () { return false; };
 
   E.freezeMe = function (frames) {
     if (this.noFreeze) return;
@@ -4729,11 +5335,450 @@ G.enemies = (function () {
     }
   };
 
+
+  /* ======================================================================
+     ⑦ 盾持ち兵：正面からの弾は盾で弾く。撃つ瞬間だけ盾を下げる＝そこが狙い目
+     ====================================================================== */
+  var ShieldJoe = extend(function (x, y) {
+    Enemy.call(this, x, y, { hp: 6, contactDmg: 4, dropChance: 0.5 });
+    this.w = 14; this.h = 20;
+    this.gravity = 0.3;
+    this.mode = 'guard';
+    this.timer = U.rndInt(0, 40);
+    this.shots = 0;
+  });
+  ShieldJoe.prototype.blocks = function (shot) {
+    // 盾を構えている間、正面から飛んできた弾だけを弾く（背後からは通る）
+    if (this.mode !== 'guard') return false;
+    var fromRight = shot.cx() > this.cx();
+    return (this.face > 0) === fromRight;
+  };
+  ShieldJoe.prototype.update = function (st) {
+    if (this.preUpdate()) { this.physics(); return; }
+    var pl = st.player;
+    this.timer++;
+    this.vx = 0;
+
+    if (this.mode === 'guard') {
+      this.face = pl.cx() < this.cx() ? -1 : 1;
+      // ときどき軽く跳ねて間合いを詰める
+      if (this.onGround && this.timer % 96 === 60) {
+        this.vy = -3.6; this.vx = this.face * 0.8;
+      }
+      if (this.timer > 110) { this.mode = 'fire'; this.timer = 0; this.shots = 0; }
+    } else {
+      // 盾を下ろして連射（この間は無防備）
+      if (this.timer % 16 === 8 && this.shots < 3) {
+        this.shots++;
+        st.shots.push(new W.EnemyShot(this.cx() + this.face * 12, this.cy() - 2,
+          this.face * 3.4, 0,
+          { dmg: 3, size: 9, color: '#F8D878', color2: '#FCFCFC' }));
+        A.sfx.shot();
+        G.fx.burst(this.cx() + this.face * 14, this.cy() - 2, 3,
+          { speed: 1.2, life: 8, size: 2, color: '#FCE0A8', light: true });
+      }
+      if (this.timer > 64) { this.mode = 'guard'; this.timer = 0; }
+    }
+    this.physics();
+  };
+  ShieldJoe.prototype.draw = function (camX, camY) {
+    var sp = G.sprites.enemy.joe;
+    this.blit(sp[this.mode === 'guard' ? 0 : 1], camX, camY);
+    // 弾いた直後に光らせたいので、盾の位置に薄い光を置く
+    if (this.mode === 'guard' && this.deflectGlow > 0) {
+      this.deflectGlow--;
+      var ctx = gfx.ctx;
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      gfx.circle(this.cx() + this.face * 9 - camX, this.cy() - camY, 5, '#BCE8FC');
+      ctx.restore();
+    }
+  };
+
+  /* ======================================================================
+     ⑧ 天井にぶら下がる敵：真下を通ると落ちてきて追いかけてくる
+     ====================================================================== */
+  var Bat = extend(function (x, y) {
+    Enemy.call(this, x, y, { hp: 2, contactDmg: 4 });
+    this.w = 14; this.h = 8;
+    this.mode = 'hang';
+    this.homeY = y;
+    this.timer = 0;
+  });
+  Bat.prototype.update = function (st) {
+    if (this.preUpdate()) return;
+    var pl = st.player;
+    if (this.mode === 'hang') {
+      // 真下付近に来たら落下開始
+      if (Math.abs(pl.cx() - this.cx()) < 34 && pl.cy() > this.cy()) {
+        this.mode = 'drop'; this.timer = 0;
+        A.sfx.blip();
+      }
+    } else if (this.mode === 'drop') {
+      this.timer++;
+      this.y += Math.min(this.timer * 0.5, 4.5);
+      if (this.timer > 16) { this.mode = 'fly'; this.timer = 0; }
+    } else {
+      // ゆるやかにプレイヤーを追う
+      this.timer++;
+      var a = Math.atan2(pl.cy() - this.cy(), pl.cx() - this.cx());
+      this.vx = U.lerp(this.vx, Math.cos(a) * 1.5, 0.045);
+      this.vy = U.lerp(this.vy, Math.sin(a) * 1.1, 0.045);
+      this.x += this.vx;
+      this.y += this.vy + Math.sin(this.timer * 0.13) * 0.5;
+      this.face = this.vx < 0 ? -1 : 1;
+      // 壁にぶつかったら跳ね返る
+      if (TL.boxSolid(this.x, this.y, this.w, this.h)) {
+        this.x -= this.vx; this.y -= this.vy;
+        this.vx = -this.vx * 0.6; this.vy = -this.vy * 0.6;
+      }
+    }
+  };
+  Bat.prototype.draw = function (camX, camY) {
+    var sp = G.sprites.enemy.bat;
+    if (this.mode === 'hang') this.blit(sp[0], camX, camY);
+    else this.blit(sp[Math.floor(this.age / 4) % 2], camX, camY);
+  };
+
+  /* ======================================================================
+     ⑨ 壁這い：床・壁・天井を伝ってぐるぐる回る
+        進行方向に壁があれば曲がり、床が途切れたら角を回り込む。
+     ====================================================================== */
+  var DIRS = [ { x: 1, y: 0 }, { x: 0, y: 1 }, { x: -1, y: 0 }, { x: 0, y: -1 } ];
+  function rotCCW(i) { return (i + 3) % 4; }   // 画面上での反時計回り
+  function rotCW(i)  { return (i + 1) % 4; }
+
+  var Crawler = extend(function (x, y, opt) {
+    Enemy.call(this, x, y, { hp: 3, contactDmg: 4 });
+    this.w = 14; this.h = 12;
+    this.moveDir = (opt && opt.dir === -1) ? 2 : 0;   // 右 or 左
+    this.downDir = 1;                                 // 最初は床にくっついている
+    this.speed = 0.62;
+    this.lost = 0;
+  });
+  Crawler.prototype.update = function (st) {
+    if (this.preUpdate()) return;
+    var mv = DIRS[this.moveDir], dv = DIRS[this.downDir];
+    var cx = this.cx(), cy = this.cy();
+    var r = 9;
+
+    var ahead = TL.solidAtPx(cx + mv.x * r, cy + mv.y * r);
+    var corner = TL.solidAtPx(cx + mv.x * r + dv.x * r, cy + mv.y * r + dv.y * r);
+
+    if (ahead) {
+      // 進行方向が壁：面に沿って向きを変える
+      this.moveDir = rotCCW(this.moveDir);
+      this.downDir = rotCCW(this.downDir);
+    } else if (!corner) {
+      // 床が途切れた：角を回り込む
+      this.moveDir = rotCW(this.moveDir);
+      this.downDir = rotCW(this.downDir);
+      var nd = DIRS[this.downDir];
+      this.x += nd.x * 3; this.y += nd.y * 3;
+    } else {
+      this.x += mv.x * this.speed;
+      this.y += mv.y * this.speed;
+    }
+
+    // 面から離れてしまった時の保険（浮いたまま飛んでいかないように）
+    var dv2 = DIRS[this.downDir];
+    if (!TL.solidAtPx(this.cx() + dv2.x * r, this.cy() + dv2.y * r)) {
+      this.lost++;
+      if (this.lost > 40) { this.downDir = 1; this.lost = 0; }   // 床基準に戻す
+    } else this.lost = 0;
+
+    this.face = (this.moveDir === 2) ? -1 : 1;
+  };
+  Crawler.prototype.draw = function (camX, camY) {
+    var box = G.sprites.enemy.crawl[Math.floor(this.age / 8) % 2];
+    var ctx = gfx.ctx;
+    ctx.save();
+    ctx.translate(Math.round(this.cx() - camX), Math.round(this.cy() - camY));
+    // くっついている面に合わせて回す
+    ctx.rotate([0, 0, 0, 0][0] + (this.downDir - 1) * Math.PI / 2);
+    var img = this.flash > 0 ? box.sil('#FCFCFC', 1) : box.r;
+    ctx.drawImage(img, -box.w / 2 | 0, -box.h / 2 | 0);
+    ctx.restore();
+    if (this.frozen > 0) this.drawFrozen(camX, camY);
+  };
+
+  /* ======================================================================
+     ⑩ 装甲車：硬くて遅い。正面装甲でバスターのダメージが半減する
+     ====================================================================== */
+  var Tank = extend(function (x, y) {
+    Enemy.call(this, x, y, { hp: 14, contactDmg: 5, dropChance: 0.7 });
+    this.w = 20; this.h = 16;
+    this.gravity = 0.3;
+    this.timer = U.rndInt(0, 60);
+  });
+  Tank.prototype.damage = function (n, element, st) {
+    // 正面装甲：通常弾は効きが悪い（チャージや属性武器で崩す）
+    if (element === 'buster') n = Math.max(1, Math.floor(n * 0.5));
+    return Enemy.prototype.damage.call(this, n, element, st);
+  };
+  Tank.prototype.update = function (st) {
+    if (this.preUpdate()) { this.physics(); return; }
+    var pl = st.player;
+    this.timer++;
+    this.face = pl.cx() < this.cx() ? -1 : 1;
+    // じりじり近づく
+    this.vx = this.face * 0.42;
+    var hit = TL.moveX(this, this.vx);
+    if (hit !== 0) this.vx = 0;
+    this.vy = Math.min(this.vy + this.gravity, 7);
+    var r = TL.moveY(this, this.vy);
+    this.onGround = (r === 1);
+
+    if (this.timer === 100) A.sfx.blip();
+    if (this.timer >= 120) {
+      this.timer = 0;
+      // 3方向の拡散弾
+      for (var i = -1; i <= 1; i++) {
+        st.shots.push(new W.EnemyShot(this.cx() + this.face * 12, this.cy() - 2,
+          this.face * 3.0, i * 0.9,
+          { dmg: 3, size: 10, color: '#FC9838', color2: '#FCE0A8' }));
+      }
+      A.sfx.shot();
+      G.fx.shake(1.5, 8);
+      G.fx.burst(this.cx() + this.face * 14, this.cy() - 2, 6,
+        { speed: 1.6, life: 12, size: 2, color: '#FC9838', light: true });
+    }
+  };
+  Tank.prototype.draw = function (camX, camY) {
+    var sp = G.sprites.enemy.tank;
+    this.blit(sp[this.timer > 100 ? 1 : 0], camX, camY);
+  };
+
+  /* ======================================================================
+     ⑪ 分裂体：倒すと小さいのが2体に分かれる
+     ====================================================================== */
+  var Splitter = extend(function (x, y, opt) {
+    var small = !!(opt && opt.small);
+    Enemy.call(this, x, y, { hp: small ? 2 : 5, contactDmg: small ? 3 : 4,
+                             dropChance: small ? 0.2 : 0.1 });
+    this.small = small;
+    this.w = small ? 10 : 16;
+    this.h = small ? 8 : 12;
+    this.gravity = 0.22;
+    this.timer = U.rndInt(0, 30);
+  });
+  Splitter.prototype.update = function (st) {
+    if (this.preUpdate()) { this.physics(); return; }
+    this.timer++;
+    var pl = st.player;
+    // ふわふわ漂いながらプレイヤーへ寄る
+    var dir = pl.cx() < this.cx() ? -1 : 1;
+    this.face = dir;
+    this.vx = U.lerp(this.vx, dir * (this.small ? 1.1 : 0.7), 0.03);
+    this.x += this.vx;
+    this.y += Math.sin(this.timer * 0.07) * (this.small ? 0.7 : 0.45);
+    if (TL.boxSolid(this.x, this.y, this.w, this.h)) {
+      this.x -= this.vx; this.vx = -this.vx;
+    }
+  };
+  Splitter.prototype.kill = function (st) {
+    if (this.dead) return;
+    if (!this.small && st) {
+      // 大きいほうは2体に分裂する
+      for (var i = 0; i < 2; i++) {
+        var c = new Splitter(this.cx(), this.cy(), { small: true });
+        c.x = this.cx() - c.w / 2;
+        c.y = this.cy() - c.h / 2;
+        c.vx = (i === 0 ? -1 : 1) * 1.3;
+        st.enemies.push(c);
+      }
+      G.fx.burst(this.cx(), this.cy(), 10, { speed: 2, life: 16, size: 2, color: '#F878F8' });
+    }
+    Enemy.prototype.kill.call(this, st);
+  };
+  Splitter.prototype.draw = function (camX, camY) {
+    this.blit(G.sprites.enemy.split[this.small ? 1 : 0], camX, camY);
+  };
+
+  /* ======================================================================
+     ⑫ 飛び出し：穴やトゲの中に潜んでいて、近づくと放物線を描いて飛び出す
+     ====================================================================== */
+  var Riser = extend(function (x, y) {
+    Enemy.call(this, x, y, { hp: 2, contactDmg: 4 });
+    this.w = 14; this.h = 12;
+    this.homeY = y;
+    this.mode = 'wait';
+    this.timer = 0;
+  });
+  Riser.prototype.hitbox = function () {
+    // 潜んでいる間は当たり判定なし
+    if (this.mode === 'wait') return { x: -9999, y: -9999, w: 0, h: 0 };
+    return { x: this.x, y: this.y, w: this.w, h: this.h };
+  };
+  Riser.prototype.update = function (st) {
+    if (this.preUpdate()) return;
+    var pl = st.player;
+    if (this.mode === 'wait') {
+      this.invulnerable = true;
+      this.timer++;
+      if (Math.abs(pl.cx() - this.cx()) < 70 && this.timer > 40) {
+        this.mode = 'jump';
+        this.invulnerable = false;
+        this.vy = -6.4;
+        this.vx = U.clamp((pl.cx() - this.cx()) / 40, -1.6, 1.6);
+        this.timer = 0;
+        A.sfx.jump();
+        G.fx.burst(this.cx(), this.y + this.h, 6,
+          { speed: 1.6, life: 14, size: 2, color: '#FC9838', dir: -Math.PI / 2, spread: Math.PI });
+      }
+    } else {
+      this.vy += 0.22;
+      this.x += this.vx;
+      this.y += this.vy;
+      this.face = this.vx < 0 ? -1 : 1;
+      // 元の高さより下に戻ったらまた潜む
+      if (this.vy > 0 && this.y > this.homeY) {
+        this.y = this.homeY;
+        this.mode = 'wait';
+        this.invulnerable = true;
+        this.timer = 0;
+        this.vx = this.vy = 0;
+      }
+    }
+  };
+  Riser.prototype.draw = function (camX, camY) {
+    if (this.mode === 'wait') return;         // 潜んでいる間は見えない
+    var box = G.sprites.enemy.riser[0];
+    var ctx = gfx.ctx;
+    ctx.save();
+    ctx.translate(Math.round(this.cx() - camX), Math.round(this.cy() - camY));
+    ctx.rotate(Math.atan2(this.vy, this.vx * 2) - Math.PI / 2);
+    var img = this.flash > 0 ? box.sil('#FCFCFC', 1) : box.r;
+    ctx.drawImage(img, -box.w / 2 | 0, -box.h / 2 | 0);
+    ctx.restore();
+  };
+
+  /* ======================================================================
+     ⑬ 火炎噴出口：一定間隔で炎の柱を吹き上げる床の装置（破壊不可）
+     ====================================================================== */
+  var Vent = extend(function (x, y, opt) {
+    Enemy.call(this, x, y, { hp: 999, contactDmg: 0, dropChance: 0 });
+    this.w = 14; this.h = 6;
+    this.invulnerable = true;
+    this.noFreeze = true;
+    this.timer = (opt && opt.phase) || U.rndInt(0, 90);
+    this.height = (opt && opt.height) || 56;
+    this.flame = null;
+  });
+  Vent.prototype.update = function (st) {
+    this.age++;
+    this.timer++;
+    var CYCLE = 130, WARN = 26, BURN = 50;
+    var t = this.timer % CYCLE;
+    if (t === CYCLE - WARN) A.sfx.blip();
+    if (t === 0) {
+      // 炎の柱を出す（予告のあと本発動）
+      var self = this;
+      this.flame = new G.bosses.Hazard(this.x + 1, this.y - this.height, this.w - 2, this.height, {
+        dmg: 4, element: 'fire', life: BURN, warn: 0, color: '#FC9838',
+        draw: function (h, cx, cy) {
+          var ctx = gfx.ctx;
+          var k = Math.min(1, h.age / 6) * (1 - Math.max(0, (h.age - BURN + 10) / 10));
+          if (k <= 0) return;
+          ctx.save(); ctx.globalCompositeOperation = 'lighter';
+          var w = h.w * k;
+          for (var y = 0; y < h.h; y += 4) {
+            var wob = Math.sin((h.age + y) * 0.3) * 2;
+            var ww = w * (1 - y / h.h * 0.35);
+            gfx.rect(h.cx() - cx - ww / 2 + wob, h.y + h.h - y - 4 - cy, ww, 4, '#D82800');
+            gfx.rect(h.cx() - cx - ww / 4 + wob, h.y + h.h - y - 4 - cy, ww / 2, 4, '#FC9838');
+          }
+          ctx.restore();
+          if (h.age % 3 === 0) {
+            G.fx.part({ x: h.cx() + U.rndRange(-5, 5), y: h.y + h.h - U.rnd() * h.h,
+              vx: U.rndRange(-0.3, 0.3), vy: -U.rndRange(0.5, 1.5),
+              life: 16, size: 3, color: '#FCE0A8', color2: '#D82800',
+              type: 'circle', light: true });
+          }
+        }
+      });
+      st.hazards.push(this.flame);
+      A.sfx.fire();
+    }
+    // 予告：噴出口が赤く光る
+    this.warning = (t >= CYCLE - WARN);
+  };
+  Vent.prototype.damage = function () { return false; };
+  Vent.prototype.draw = function (camX, camY) {
+    var box = G.sprites.enemy.vent[0];
+    var ctx = gfx.ctx;
+    var dx = Math.round(this.cx() - camX - box.w / 2);
+    var dy = Math.round(this.y + this.h - box.h - camY);
+    ctx.drawImage(box.r, dx, dy);
+    if (this.warning && Math.floor(this.age / 4) % 2 === 0) {
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      gfx.rect(dx + 2, dy + 1, box.w - 4, 3, '#FC9838');
+      ctx.restore();
+    }
+  };
+
+  /* ======================================================================
+     ⑭ プレス機：上から周期的に落ちてくる。挟まれないよう通り抜ける
+     ====================================================================== */
+  var Crusher = extend(function (x, y, opt) {
+    Enemy.call(this, x, y, { hp: 999, contactDmg: 6, dropChance: 0 });
+    opt = opt || {};
+    this.w = opt.w || 34;
+    this.h = 22;
+    this.invulnerable = true;
+    this.noFreeze = true;
+    this.topY = y;
+    this.dropY = opt.dropY || (y + 80);
+    this.mode = 'wait';
+    this.timer = opt.phase || 0;
+  });
+  Crusher.prototype.damage = function () { return false; };
+  Crusher.prototype.update = function (st) {
+    this.age++;
+    this.timer++;
+    if (this.mode === 'wait') {
+      if (this.timer > 80) { this.mode = 'drop'; this.timer = 0; this.vy = 0; }
+    } else if (this.mode === 'drop') {
+      this.vy = Math.min(this.vy + 1.1, 13);
+      this.y += this.vy;
+      if (this.y >= this.dropY) {
+        this.y = this.dropY;
+        this.mode = 'hold'; this.timer = 0;
+        A.sfx.quake();
+        G.fx.shake(5, 20);
+        G.fx.dust(this.x + 4, this.y + this.h, -1.5);
+        G.fx.dust(this.x + this.w - 4, this.y + this.h, 1.5);
+        G.fx.ring(this.cx(), this.y + this.h, 3, 40, 14, '#BCBCBC');
+      }
+    } else if (this.mode === 'hold') {
+      if (this.timer > 34) { this.mode = 'rise'; this.timer = 0; }
+    } else {
+      this.y -= 1.1;
+      if (this.y <= this.topY) { this.y = this.topY; this.mode = 'wait'; this.timer = 0; }
+    }
+  };
+  Crusher.prototype.draw = function (camX, camY) {
+    var x = Math.round(this.x - camX), y = Math.round(this.y - camY);
+    gfx.rect(x, y, this.w, this.h, '#101018');
+    gfx.rect(x + 1, y + 1, this.w - 2, this.h - 6, '#7C7C8C');
+    gfx.rect(x + 1, y + 1, this.w - 2, 3, '#BCBCC8');
+    gfx.rect(x + 1, y + this.h - 8, this.w - 2, 2, '#3C3C4C');
+    // 下面のトゲ
+    for (var i = 2; i < this.w - 3; i += 5) {
+      gfx.rect(x + i, y + this.h - 5, 4, 2, '#BCBCBC');
+      gfx.rect(x + i + 1, y + this.h - 3, 2, 3, '#FCFCFC');
+    }
+    // 天井とつながる支柱
+    gfx.rect(x + this.w / 2 - 4, Math.round(this.topY - 40 - camY), 8, this.y - this.topY + 42, '#3C3C4C');
+    gfx.rect(x + this.w / 2 - 3, Math.round(this.topY - 40 - camY), 2, this.y - this.topY + 42, '#7C7C8C');
+  };
+
   /* ======================================================================
      生成のための表
      ====================================================================== */
   var TYPES = {
-    met: Met, fly: Flyer, turret: Turret, hop: Hopper, spike: Spiker, plat: Platform
+    met: Met, fly: Flyer, turret: Turret, hop: Hopper, spike: Spiker, plat: Platform,
+    joe: ShieldJoe, bat: Bat, crawl: Crawler, tank: Tank,
+    split: Splitter, riser: Riser, vent: Vent, crusher: Crusher
   };
 
   function create(type, x, y, opt) {
@@ -4744,7 +5789,9 @@ G.enemies = (function () {
 
   return {
     Enemy: Enemy, extend: extend, create: create, TYPES: TYPES,
-    Met: Met, Flyer: Flyer, Turret: Turret, Hopper: Hopper, Spiker: Spiker, Platform: Platform
+    Met: Met, Flyer: Flyer, Turret: Turret, Hopper: Hopper, Spiker: Spiker, Platform: Platform,
+    ShieldJoe: ShieldJoe, Bat: Bat, Crawler: Crawler, Tank: Tank,
+    Splitter: Splitter, Riser: Riser, Vent: Vent, Crusher: Crusher
   };
 })();
 
@@ -6777,10 +7824,12 @@ G.scenes.stage = (function () {
         var e = st.enemies[j];
         if (e.dead || e.isPlatform) continue;
         if (!U.overlap(s.hitbox(), e.hitbox())) continue;
-        if (e.invulnerable) {
-          // 硬い相手は弾かれる
+        // 無敵の相手、または盾で正面を守っている相手には弾かれる
+        var blocked = e.blocks(s);
+        if (e.invulnerable || blocked) {
           A.sfx.deflect();
-          G.fx.ricochet(s.cx(), s.cy(), '#FCFCFC');
+          G.fx.ricochet(s.cx(), s.cy(), blocked ? '#BCE8FC' : '#FCFCFC');
+          if (blocked) e.deflectGlow = 8;
           if (!s.pierce) s.dead = true;
           continue;
         }
@@ -7283,10 +8332,18 @@ G.scenes.stage = (function () {
 
     /* --- 共通の更新（演出中も弾やパーティクルは動かす） --- */
     if (st.phase !== 'gameover') {
+      TL.tick();                 // 明滅ブロック・崩れる床・コンベアの時間を進める
       updateSpawners();
 
       var i;
-      for (i = 0; i < st.enemies.length; i++) if (!st.enemies[i].dead) st.enemies[i].update(st);
+      // 分裂などで生まれた「湧き元を持たない敵」は、画面から離れたら片付ける
+      var cullL = st.camX - gfx.W, cullR = st.camX + gfx.W * 2;
+      for (i = 0; i < st.enemies.length; i++) {
+        var en = st.enemies[i];
+        if (en.dead) continue;
+        if (!en.spawner && !en.isPlatform && (en.x < cullL || en.x > cullR)) { en.dead = true; continue; }
+        en.update(st);
+      }
       for (i = 0; i < st.shots.length; i++)   if (!st.shots[i].dead)   st.shots[i].update(st);
       for (i = 0; i < st.hazards.length; i++) if (!st.hazards[i].dead) st.hazards[i].update(st);
       for (i = 0; i < st.items.length; i++)   if (!st.items[i].dead)   st.items[i].update(st);

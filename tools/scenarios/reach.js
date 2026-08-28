@@ -10,9 +10,14 @@
 module.exports = async ({ page, waitScene }) => {
   await waitScene('title');
   const results = await page.evaluate(() => {
-    const SOLID = c => c === '#' || c === 'I' || c === 'B' || c === 'D';
+    // '<' '>' はコンベア（常に固体）。'o' 'p' は明滅、'c' は崩れる床で
+    // 一時的にしか存在しないため、「乗れる」には数えるが
+    // 「頭がぶつかる」には数えない（安全側に倒した見積もり）。
+    const SOLID = c => c === '#' || c === 'I' || c === 'B' || c === 'D' ||
+                       c === '<' || c === '>';
     const BLOCK = c => SOLID(c);                 // 頭がぶつかるもの
-    const STAND = c => SOLID(c) || c === '=';    // 足を乗せられるもの
+    const STAND = c => SOLID(c) || c === '=' ||
+                       c === 'o' || c === 'p' || c === 'c';   // 足を乗せられるもの
     const out = [];
 
     ['cut','elec','ice','fire','bomb','guts'].forEach(key => {
@@ -78,18 +83,27 @@ module.exports = async ({ page, waitScene }) => {
         for (let x = doorTx - 3; x < doorTx; x++)
           if (seen.has(key2(x, y))) reachedDoor = true;
 
-      out.push({ key, reachedDoor, maxX, doorTx, nodes: nodes.size, reached: seen.size });
+      // 扉の手前が平らな床で連続しているか（穴が開いていると詰まる）
+      let corridorOK = true, gapAt = -1;
+      for (let x = doorTx - 12; x < doorTx; x++) {
+        if (!SOLID(at(x, 15)) || BLOCK(at(x, 14)) || BLOCK(at(x, 13))) {
+          corridorOK = false; gapAt = x; break;
+        }
+      }
+      out.push({ key, reachedDoor, maxX, doorTx, nodes: nodes.size, reached: seen.size,
+                 corridorOK, gapAt });
     });
     return out;
   });
 
   let bad = 0;
   results.forEach(r => {
-    const ok = r.reachedDoor;
+    const ok = r.reachedDoor && r.corridorOK;
     if (!ok) bad++;
-    console.log(`${r.key.padEnd(5)} 扉まで到達=${ok ? 'OK ' : '到達不能!!'} ` +
-      `最遠到達x=${r.maxX}/${r.doorTx} 立てる場所${r.nodes}箇所中${r.reached}箇所に到達`);
+    console.log(`${r.key.padEnd(5)} 扉まで到達=${r.reachedDoor ? 'OK ' : '到達不能!!'} ` +
+      `扉前の通路=${r.corridorOK ? 'OK' : '穴あり!! x=' + r.gapAt} ` +
+      `立てる場所${r.nodes}箇所中${r.reached}箇所に到達`);
   });
-  if (bad) throw new Error(bad + ' 個のステージが踏破不能です');
+  if (bad) throw new Error(bad + ' 個のステージに問題があります');
   console.log('全6ステージ 踏破可能');
 };

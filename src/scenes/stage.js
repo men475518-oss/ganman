@@ -225,10 +225,12 @@ G.scenes.stage = (function () {
         var e = st.enemies[j];
         if (e.dead || e.isPlatform) continue;
         if (!U.overlap(s.hitbox(), e.hitbox())) continue;
-        if (e.invulnerable) {
-          // 硬い相手は弾かれる
+        // 無敵の相手、または盾で正面を守っている相手には弾かれる
+        var blocked = e.blocks(s);
+        if (e.invulnerable || blocked) {
           A.sfx.deflect();
-          G.fx.ricochet(s.cx(), s.cy(), '#FCFCFC');
+          G.fx.ricochet(s.cx(), s.cy(), blocked ? '#BCE8FC' : '#FCFCFC');
+          if (blocked) e.deflectGlow = 8;
           if (!s.pierce) s.dead = true;
           continue;
         }
@@ -731,10 +733,18 @@ G.scenes.stage = (function () {
 
     /* --- 共通の更新（演出中も弾やパーティクルは動かす） --- */
     if (st.phase !== 'gameover') {
+      TL.tick();                 // 明滅ブロック・崩れる床・コンベアの時間を進める
       updateSpawners();
 
       var i;
-      for (i = 0; i < st.enemies.length; i++) if (!st.enemies[i].dead) st.enemies[i].update(st);
+      // 分裂などで生まれた「湧き元を持たない敵」は、画面から離れたら片付ける
+      var cullL = st.camX - gfx.W, cullR = st.camX + gfx.W * 2;
+      for (i = 0; i < st.enemies.length; i++) {
+        var en = st.enemies[i];
+        if (en.dead) continue;
+        if (!en.spawner && !en.isPlatform && (en.x < cullL || en.x > cullR)) { en.dead = true; continue; }
+        en.update(st);
+      }
       for (i = 0; i < st.shots.length; i++)   if (!st.shots[i].dead)   st.shots[i].update(st);
       for (i = 0; i < st.hazards.length; i++) if (!st.hazards[i].dead) st.hazards[i].update(st);
       for (i = 0; i < st.items.length; i++)   if (!st.items[i].dead)   st.items[i].update(st);

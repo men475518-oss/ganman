@@ -284,6 +284,189 @@ G.sprites = (function () {
     '...K..K..K...'
   ];
 
+
+  /* --- 盾持ち兵：正面からの弾を盾で弾く。撃つ瞬間だけ盾を下げる --- */
+  var JOE_GUARD = [
+    '....KKKKKK......',
+    '...KGGGGGGK.....',
+    '..KGGGGGGGGK....',
+    '..KGKKKKKKGK....',
+    '..KGKRRRRKGK....',
+    '..KGGGGGGGGK....',
+    '...KGGGGGGK.....',
+    '..KKKKKKKKKK....',
+    '.KBBBBBBBBBK....',
+    '.KBBBBBBBBBKKKK.',
+    '.KBBBWWWWBBKCWCK',
+    '.KBBBWWWWBBKCCCK',
+    '.KBBBBBBBBBKCCCK',
+    '.KBBBBBBBBBKCWCK',
+    '..KBBBBBBBBKKKKK',
+    '..KBBBKKBBBK....',
+    '..KBBK..KBBK....',
+    '..KBBK..KBBK....',
+    '..KGGK..KGGK....',
+    '..KKKK..KKKK....'
+  ];
+  var JOE_FIRE = [
+    '....KKKKKK......',
+    '...KGGGGGGK.....',
+    '..KGGGGGGGGK....',
+    '..KGKKKKKKGK....',
+    '..KGKAAAAKGK....',
+    '..KGGGGGGGGK....',
+    '...KGGGGGGK.....',
+    '..KKKKKKKKKK....',
+    '.KBBBBBBBBBK....',
+    '.KBBBBBBBBBKKK..',
+    '.KBBBWWWWBBKYYK.',
+    '.KBBBWWWWBBKYYK.',
+    '.KBBBBBBBBBKKK..',
+    '.KBBBBBBBBBK....',
+    '..KBBBBBBBBKCCCK',
+    '..KBBBKKBBBKCCCK',
+    '..KBBK..KBBKKKKK',
+    '..KBBK..KBBK....',
+    '..KGGK..KGGK....',
+    '..KKKK..KKKK....'
+  ];
+
+  /* --- 天井にぶら下がる敵。真下を通ると落ちてくる --- */
+  var BAT_HANG = [
+    '..KKKKKKKKKK..',
+    '..KVVVVVVVVK..',
+    '...KVVVVVVK...',
+    '...KVRVVRVK...',
+    '....KVVVVK....',
+    '.....KVVK.....',
+    '.....KVVK.....',
+    '......KK......'
+  ];
+  var BAT_FLY = [
+    'KK..KKKKKK..KK',
+    'KVKKVVVVVVKKVK',
+    '.KVVVRVVRVVVK.',
+    '..KVVVVVVVVK..',
+    '...KVVVVVVK...',
+    '....KVVVVK....',
+    '.....KVVK.....',
+    '......KK......'
+  ];
+
+  /* --- 壁や天井も伝って歩く敵 --- */
+  var CRAWL1 = [
+    '...KKKKKKKK...',
+    '..KNNNNNNNNK..',
+    '.KNNWWNNWWNNK.',
+    '.KNNWKNNWKNNK.',
+    'KNNNNNNNNNNNNK',
+    'KNNNNNNNNNNNNK',
+    '.KNNNNNNNNNNK.',
+    '..KKKKKKKKKK..',
+    '..K.K.K.K.K...'
+  ];
+  var CRAWL2 = [
+    '...KKKKKKKK...',
+    '..KNNNNNNNNK..',
+    '.KNNWWNNWWNNK.',
+    '.KNNWKNNWKNNK.',
+    'KNNNNNNNNNNNNK',
+    'KNNNNNNNNNNNNK',
+    '.KNNNNNNNNNNK.',
+    '..KKKKKKKKKK..',
+    '...K.K.K.K.K..'
+  ];
+
+  /* --- 装甲車：硬くて遅いが、拡散弾を撃ってくる --- */
+  var TANK1 = [
+    '......KKKKKKKK......',
+    '.....KGGGGGGGGK.....',
+    '....KGGRRRRRRGGK....',
+    '....KGGRWWWWRGGK....',
+    '....KGGRRRRRRGGK....',
+    '...KGGGGGGGGGGGGK...',
+    'KKKKGGGGGGGGGGGGKKKK',
+    'KEEEGGGGGGGGGGGGKYYK',
+    'KEEEGGGGGGGGGGGGKYYK',
+    'KKKKGGGGGGGGGGGGKKKK',
+    '..KGGGGGGGGGGGGGGK..',
+    '..KKKKKKKKKKKKKKKK..',
+    '.KEEEEEEEEEEEEEEEEK.',
+    '.KEKEKEKEKEKEKEKEEK.',
+    '.KEEEEEEEEEEEEEEEEK.',
+    '.KKKKKKKKKKKKKKKKKK.'
+  ];
+  var TANK2 = [
+    '......KKKKKKKK......',
+    '.....KGGGGGGGGK.....',
+    '....KGGAAAAAAGGK....',
+    '....KGGAWWWWAGGK....',
+    '....KGGAAAAAAGGK....',
+    '...KGGGGGGGGGGGGK...',
+    'KKKKGGGGGGGGGGGGKKKK',
+    'KEEEGGGGGGGGGGGGKAAK',
+    'KEEEGGGGGGGGGGGGKAAK',
+    'KKKKGGGGGGGGGGGGKKKK',
+    '..KGGGGGGGGGGGGGGK..',
+    '..KKKKKKKKKKKKKKKK..',
+    '.KEEEEEEEEEEEEEEEEK.',
+    '.KEEKEKEKEKEKEKEKEK.',
+    '.KEEEEEEEEEEEEEEEEK.',
+    '.KKKKKKKKKKKKKKKKKK.'
+  ];
+
+  /* --- 分裂体：倒すと小さいのが2体に分かれる --- */
+  var SPLIT_BIG = [
+    '....KKKKKKKK....',
+    '..KKPPPPPPPPKK..',
+    '.KPPPPPPPPPPPPK.',
+    '.KPPWWPPPPWWPPK.',
+    'KPPPWKPPPPWKPPPK',
+    'KPPPPPPPPPPPPPPK',
+    'KPPPPPPPPPPPPPPK',
+    'KPPPPKKKKPPPPPPK',
+    '.KPPPPPPPPPPPPK.',
+    '.KPPPPPPPPPPPPK.',
+    '..KKPPPPPPPPKK..',
+    '....KKKKKKKK....'
+  ];
+  var SPLIT_SMALL = [
+    '..KKKKKK..',
+    '.KPPPPPPK.',
+    'KPPWPPWPPK',
+    'KPPKPPKPPK',
+    'KPPPPPPPPK',
+    'KPPPPPPPPK',
+    '.KPPPPPPK.',
+    '..KKKKKK..'
+  ];
+
+  /* --- 穴から飛び出してくる敵 --- */
+  var RISER = [
+    '......KK......',
+    '.....KOOK.....',
+    '....KOOOOK....',
+    '...KOOWWOOK...',
+    '...KOWKKWOK...',
+    '..KOOOOOOOOK..',
+    '..KOOOOOOOOK..',
+    '...KOOOOOOK...',
+    '....KOOOOK....',
+    '.....KOOK.....',
+    '....K.KK.K....',
+    '......KK......'
+  ];
+
+  /* --- 火炎噴出口（床の装置。炎は手続きで描く） --- */
+  var VENT = [
+    '..KKKKKKKKKK..',
+    '.KEEEEEEEEEEK.',
+    'KEEKKEEKKEEEEK',
+    'KEEEEEEEEEEEEK',
+    'KGGGGGGGGGGGGK',
+    'KKKKKKKKKKKKKK'
+  ];
+
   /* ======================================================================
      アイテムのドット絵
      ====================================================================== */
@@ -399,6 +582,13 @@ G.sprites = (function () {
     e.turret= [ S(TUR1, EPAL),  S(TUR2, EPAL) ];
     e.hop   = [ S(HOP1, EPAL),  S(HOP2, EPAL) ];
     e.spike = [ S(SPIKE, EPAL) ];
+    e.joe    = [ S(JOE_GUARD, EPAL), S(JOE_FIRE, EPAL) ];
+    e.bat    = [ S(BAT_HANG, EPAL),  S(BAT_FLY, EPAL) ];
+    e.crawl  = [ S(CRAWL1, EPAL),    S(CRAWL2, EPAL) ];
+    e.tank   = [ S(TANK1, EPAL),     S(TANK2, EPAL) ];
+    e.split  = [ S(SPLIT_BIG, EPAL), S(SPLIT_SMALL, EPAL) ];
+    e.riser  = [ S(RISER, EPAL) ];
+    e.vent   = [ S(VENT, EPAL) ];
 
     /* --- アイテム --- */
     var it = out.item;
