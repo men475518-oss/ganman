@@ -6682,13 +6682,31 @@ G.scenes.stage = (function () {
 
     if (st.phase === 'door' || st.phase === 'bossin' || st.phase === 'boss' ||
         st.phase === 'dying' || st.phase === 'clear') {
-      // ボス部屋にカメラを固定。
-      // 床を画面の 64% の高さに置くことで、戦闘が仮想パッドより上で行われる
-      // （下部にボタンがあるスマホでもキャラが指に隠れない）
+      /* --- ボス部屋のカメラ ---
+         アリーナ幅(432px)は画面幅(端末により256〜400px)より広いので、
+         中央固定にするとプレイヤーが端に行ったとき画面外に消えてしまう。
+         そこでプレイヤーを追う方式にし、次の3段階で位置を決める。
+           ① 基本はプレイヤーとボスの中間（やや自機寄り）を見る
+           ② プレイヤーが画面端に張り付かないよう必ず余白を確保する
+           ③ アリーナから大きく外れない（壁を少し見せる程度の余裕は持つ）
+         縦は固定のまま。床を画面の64%の高さに置くことで、
+         戦闘が仮想パッドより上で行われ、指でキャラが隠れない。        */
       var ar = st.data.boss.arena;
-      var arW = ar.x1 - ar.x0;
-      tx = ar.x0 + (arW - viewW) / 2;
-      tx = U.clamp(tx, ar.x0, Math.max(ar.x0, ar.x1 - viewW));
+      var pcx = pl.cx();
+      var bcx = (st.boss && !st.boss.dead) ? st.boss.cx() : pcx;
+
+      // ① 自機寄りの中間点を見る（ボスもなるべく画面に残す）
+      tx = (pcx + (bcx - pcx) * 0.35) - viewW / 2;
+
+      // ② プレイヤーの画面内位置に下限・上限を設ける
+      var margin = Math.min(76, viewW * 0.24);
+      tx = U.clamp(tx, pcx + margin - viewW, pcx - margin);
+
+      // ③ アリーナの範囲に収める（扉から入ってくる間は扉側も映す）
+      var pad = 34;
+      var leftLimit = (st.phase === 'door') ? (st.data.boss.doorX - 90) : (ar.x0 - pad);
+      tx = U.clamp(tx, leftLimit, ar.x1 - viewW + pad);
+
       ty = ar.floorY - viewH * 0.64;
     } else {
       // 通常：プレイヤーを画面の少し左寄りに置く
@@ -7312,6 +7330,7 @@ G.scenes.stage = (function () {
     ctx.restore();
 
     /* --- 前景の演出 --- */
+    drawBossMarker(camX, camY);
     G.fx.drawFlash();
 
     /* --- 画面上の文字 --- */
@@ -7327,6 +7346,42 @@ G.scenes.stage = (function () {
     if (st.phase === 'pause') drawPauseMenu();
 
     gfx.scanlines(0.10);
+  }
+
+  /* ボスが画面外にいるときに画面端へ出す矢印。
+     アリーナは画面より広いので、自機とボスが両端に離れると
+     ボスが見えなくなる。攻撃の予兆を見逃さないための目印。       */
+  function drawBossMarker(camX, camY) {
+    var b = st.boss;
+    if (!b || b.dead || !b.active) return;
+    if (st.phase !== 'boss' && st.phase !== 'dying') return;
+
+    var z = st.zoom;
+    var sx = (b.cx() - camX) * z;
+    var sy = (b.cy() - camY) * z;
+    var edge = 14;
+    if (sx >= edge && sx <= gfx.W - edge) return;   // 画面内なら不要
+
+    var dir = (sx < edge) ? -1 : 1;
+    var x = (dir < 0) ? edge : gfx.W - edge;
+    var y = U.clamp(sy, 26, gfx.H - 64);
+    var ctx = gfx.ctx;
+    var pulse = (st.t % 34 < 17);
+
+    ctx.save();
+    ctx.globalAlpha = pulse ? 1 : 0.6;
+    // 三角の矢印（輪郭 → 本体の順に描く）
+    for (var i = 0; i <= 7; i++) {
+      var h = (7 - i) * 2 + 2;
+      var px = x + dir * i;
+      gfx.rect(px - (dir < 0 ? 1 : 0), y - h / 2 - 1, 2, h + 2, '#101018');
+    }
+    for (var j = 0; j <= 6; j++) {
+      var h2 = (6 - j) * 2 + 2;
+      var px2 = x + dir * j;
+      gfx.rect(px2, y - h2 / 2, 1, h2, j < 2 ? '#FCFCFC' : b.col.light);
+    }
+    ctx.restore();
   }
 
   /* 中間ポイントの目印。通過前は暗く、通過すると点灯する */
