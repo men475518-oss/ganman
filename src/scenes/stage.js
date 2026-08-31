@@ -842,6 +842,20 @@ G.scenes.stage = (function () {
         en.update(st);
       }
       for (i = 0; i < st.shots.length; i++)   if (!st.shots[i].dead)   st.shots[i].update(st);
+
+      /* 自機の弾は画面から出たら消す（原作と同じ）。
+         以前は「ステージの端」まで飛び続けていたため、開けた場所では
+         同時発射数の上限がなかなか空かず、連射できない場面があった。
+         敵弾は画面外から降ってくる技があるので対象にしない。        */
+      var viewW2 = gfx.W / st.zoom, viewH2 = gfx.H / st.zoom;
+      var cullL2 = st.camX - 32, cullR2 = st.camX + viewW2 + 32;
+      var cullB2 = st.camY + viewH2 + 96;
+      for (i = 0; i < st.shots.length; i++) {
+        var psh = st.shots[i];
+        if (psh.dead || psh.team !== 'player') continue;
+        var pcx2 = psh.cx();
+        if (pcx2 < cullL2 || pcx2 > cullR2 || psh.cy() > cullB2) psh.dead = true;
+      }
       for (i = 0; i < st.hazards.length; i++) if (!st.hazards[i].dead) st.hazards[i].update(st);
       for (i = 0; i < st.items.length; i++)   if (!st.items[i].dead)   st.items[i].update(st);
 

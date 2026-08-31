@@ -115,12 +115,14 @@
       acc -= STEP;
       steps++;
 
-      G.input.update();
-
-      // スローモー：timeScale の分だけ更新回数を間引く
+      /* スローモー：timeScale の分だけ更新回数を間引く。
+         入力の更新もここに含めるのが重要。外に出すと、間引かれた
+         フレームで「押した瞬間」が消費され、シーンに届かないまま
+         失われてしまう（ボタンが効かない原因になる）。          */
       slowAcc += G.fx.timeScale;
       if (slowAcc >= 1) {
         slowAcc -= 1;
+        G.input.update();
         G.fx.update();
         G.scene.update();
       }

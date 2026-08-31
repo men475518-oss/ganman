@@ -3,8 +3,13 @@ const DIR='/tmp/claude-0/-home-user-ganman/a60a3676-fc20-55ff-b7c4-55af35a45fd7/
 module.exports = async ({ page, waitScene, waitPhase, waitStage }) => {
   await waitScene('title'); await page.waitForTimeout(1900);
   await page.keyboard.press('Enter'); await waitScene('select'); await page.waitForTimeout(1500);
-  await page.evaluate(() => G.scene.go('stage', { key: 'ice' }, { fade: 4 }));
-  await waitStage('ice'); await waitPhase('play', 15000);
+  // 中ボスが出るのは最終ステージだけ
+  await page.evaluate(() => {
+    G.game.cleared = { cut:1, elec:1, ice:1, fire:1, bomb:1, guts:1 };
+    G.game.weapons = G.weapons.WEAPONS.map(w => w.id);
+    G.scene.go('stage', { key: 'final' }, { fade: 4 });
+  });
+  await waitStage('final'); await waitPhase('play', 15000);
 
   const mb = await page.evaluate(() => {
     const d = G.scenes.stage.state.data;

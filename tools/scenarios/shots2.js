@@ -5,8 +5,12 @@ module.exports = async ({ page, waitScene, waitPhase, waitStage }) => {
   await page.keyboard.press('Enter'); await waitScene('select'); await page.waitForTimeout(1500);
 
   // --- 中ボス ---
-  await page.evaluate(() => G.scene.go('stage', { key: 'guts' }, { fade: 4 }));
-  await waitStage('guts'); await waitPhase('play', 15000);
+  await page.evaluate(() => {
+    G.game.cleared = { cut:1, elec:1, ice:1, fire:1, bomb:1, guts:1 };
+    G.game.weapons = G.weapons.WEAPONS.map(w => w.id);
+    G.scene.go('stage', { key: 'final' }, { fade: 4 });
+  });
+  await waitStage('final'); await waitPhase('play', 15000);
   await page.evaluate(() => {
     const s = G.scenes.stage.state;
     s.player.x = s.data.midBoss.triggerX - 50;

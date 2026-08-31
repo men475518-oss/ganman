@@ -377,6 +377,13 @@ G.Player = (function () {
 
     // --- チャージできる武器（バスター）だけ長押しを溜める ---
     if (def.charge) {
+      /* 押した瞬間に通常弾を出す。
+         以前は「離した瞬間」だけで発射していたため、押しても何も起きず
+         入力が効いていないように感じられた。原作(4以降)と同じく、
+         タップで即発射／長押しで溜めて離すと強い弾、という形にする。 */
+      if (inp.pressed.shot) {
+        if (W.fire(this, st, 'buster', 0)) this.shootTimer = 16;
+      }
       if (inp.held.shot) {
         this.charge++;
         if (this.charge === CHARGE_1) { A.sfx.chargeTick(); A.chargeStart(); this.chargeSfx = true; }
@@ -397,10 +404,10 @@ G.Player = (function () {
           });
         }
       }
-      // 離した瞬間に発射（溜まっていれば強い弾）
+      // 離した瞬間は「溜まっていたときだけ」強い弾を出す
       if (inp.released.shot) {
         var level = this.chargeLevel();
-        if (W.fire(this, st, 'buster', level)) this.shootTimer = 16;
+        if (level > 0 && W.fire(this, st, 'buster', level)) this.shootTimer = 16;
         this.cancelCharge();
       }
     } else {

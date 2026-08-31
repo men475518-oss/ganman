@@ -613,12 +613,18 @@ G.input = (function () {
   var touches = {};
   var pendingTaps = [];   // フレーム間に発生したタップを溜めておく
   var touchHeld = {};   // タッチ由来の押下状態
-  // 「押した」ラッチ：押下が1フレーム未満でも必ず1回は pressed が立つようにする。
-  // （素早いタップやキー連打が取りこぼされるのを防ぐ）
-  var latch = {};
-  function clearTouchHeld() { BTN.forEach(function (b) { touchHeld[b] = false; latch[b] = false; }); }
+  /* 押下のキュー：フレームとフレームの間に起きたタップを溜めておき、
+     1フレームに1回ずつ「押して離す」を再生する。
+     真偽値のラッチだと、1フレーム内に2回タップされたときに
+     1回へ潰れて取りこぼしていた（処理落ちしたフレームで顕著）。   */
+  var pending = {};
+  var MAX_PENDING = 4;
+  function clearTouchHeld() { BTN.forEach(function (b) { touchHeld[b] = false; pending[b] = 0; }); }
   clearTouchHeld();
-  function pressLatch(name) { touchHeld[name] = true; latch[name] = true; }
+  function pressLatch(name) {
+    touchHeld[name] = true;
+    pending[name] = Math.min(MAX_PENDING, (pending[name] || 0) + 1);
+  }
 
   function assign(id, p) {
     layout();
@@ -741,7 +747,11 @@ G.input = (function () {
     var keyHeld = {};
     window.addEventListener('keydown', function (e) {
       var b = KEYMAP[e.code];
-      if (b) { keyHeld[b] = true; latch[b] = true; e.preventDefault(); }
+      if (b) {
+        if (!keyHeld[b]) pending[b] = Math.min(MAX_PENDING, (pending[b] || 0) + 1);
+        keyHeld[b] = true;
+        e.preventDefault();
+      }
     });
     window.addEventListener('keyup', function (e) {
       var b = KEYMAP[e.code];
@@ -768,8 +778,19 @@ G.input = (function () {
     for (var i = 0; i < BTN.length; i++) {
       var b = BTN[i];
       prevHeld[b] = held[b];
-      held[b] = !!(touchHeld[b] || api._keyHeld[b] || latch[b]);
-      latch[b] = false;                       // ラッチは1フレームだけ有効
+      var realHeld = !!(touchHeld[b] || api._keyHeld[b]);
+      if (realHeld) {
+        // 指(キー)が実際に押されている間は、そのまま押下として扱う
+        held[b] = true;
+        pending[b] = 0;
+      } else if (pending[b] > 0) {
+        // 溜まっているタップを「離す→押す」の順に1フレームずつ再生する。
+        // こうしないと押下が続いたままになり、次の pressed が立たない。
+        if (prevHeld[b]) held[b] = false;
+        else { held[b] = true; pending[b]--; }
+      } else {
+        held[b] = false;
+      }
       pressed[b]  = held[b] && !prevHeld[b];
       released[b] = !held[b] && prevHeld[b];
       if (pressed[b]) api.anyPressed = true;
@@ -783,7 +804,11 @@ G.input = (function () {
 
   // シーン切り替え時に押下状態をリセット（前シーンのタップが誤爆しないように）
   function consumeAll() {
-    BTN.forEach(function (b) { prevHeld[b] = held[b] = true; pressed[b] = released[b] = false; latch[b] = false; });
+    BTN.forEach(function (b) {
+      prevHeld[b] = held[b] = true;
+      pressed[b] = released[b] = false;
+      pending[b] = 0;
+    });
     api.anyPressed = false;
   }
 
@@ -3390,6 +3415,7 @@ G.stages = (function () {
       breakable: true,
       tierAt: [0, 0, 0],   // 最終ステージだけは最初から全段階が解禁
       density: 1.35,       // 敵の数も増やす
+      midBoss: true,       // 中ボス（巨大蜂）が出るのはここだけ
       drawBg: function (camX, camY, t) {
         gfx.clear(this.sky);
         // 遠くにそびえる要塞
@@ -3960,7 +3986,7 @@ G.stages = (function () {
          これを決めた回は、下のギミック強制配置を行わない。
          先に決めても後から上書きされると部屋が消えてしまうため。   */
       var placedMid = false;
-      if (!midBossPlaced && prog >= 0.44 && endX - S.x > 40 && !RISKY[last]) {
+      if (!midBossPlaced && theme.midBoss && prog >= 0.44 && endX - S.x > 40 && !RISKY[last]) {
         n = 'midBossRoom';
         midBossPlaced = true;
         placedMid = true;
@@ -4592,12 +4618,17 @@ G.weapons = (function () {
      ====================================================================== */
   var SHOOTERS = {
     buster: function (pl, st, chargeLevel) {
-      // 画面内のバスター弾は3発まで（原作準拠）
+      /* 画面内のバスター弾に上限を設ける（原作準拠）。
+         原作は横256pxで3発。この game は端末に合わせて画面が広いぶん
+         弾が画面外へ出るまで時間がかかるので、幅に比例させて
+         連射の体感が原作と同じになるようにしている（3〜5発）。   */
+      var cap = U.clamp(Math.round(3 * gfx.W / 300), 3, 5);
       var n = 0;
       for (var i = 0; i < st.shots.length; i++) {
-        if (st.shots[i] instanceof Buster && st.shots[i].level === 0) n++;
+        var sh = st.shots[i];
+        if (sh.team === 'player' && sh instanceof Buster && sh.level === 0) n++;
       }
-      if (chargeLevel === 0 && n >= 3) return false;
+      if (chargeLevel === 0 && n >= cap) return false;
       var p = pl.muzzle();
       st.shots.push(new Buster(p.x, p.y, pl.face, chargeLevel));
       if (chargeLevel === 0) A.sfx.shot();
@@ -5105,6 +5136,13 @@ G.Player = (function () {
 
     // --- チャージできる武器（バスター）だけ長押しを溜める ---
     if (def.charge) {
+      /* 押した瞬間に通常弾を出す。
+         以前は「離した瞬間」だけで発射していたため、押しても何も起きず
+         入力が効いていないように感じられた。原作(4以降)と同じく、
+         タップで即発射／長押しで溜めて離すと強い弾、という形にする。 */
+      if (inp.pressed.shot) {
+        if (W.fire(this, st, 'buster', 0)) this.shootTimer = 16;
+      }
       if (inp.held.shot) {
         this.charge++;
         if (this.charge === CHARGE_1) { A.sfx.chargeTick(); A.chargeStart(); this.chargeSfx = true; }
@@ -5125,10 +5163,10 @@ G.Player = (function () {
           });
         }
       }
-      // 離した瞬間に発射（溜まっていれば強い弾）
+      // 離した瞬間は「溜まっていたときだけ」強い弾を出す
       if (inp.released.shot) {
         var level = this.chargeLevel();
-        if (W.fire(this, st, 'buster', level)) this.shootTimer = 16;
+        if (level > 0 && W.fire(this, st, 'buster', level)) this.shootTimer = 16;
         this.cancelCharge();
       }
     } else {
@@ -9553,6 +9591,20 @@ G.scenes.stage = (function () {
         en.update(st);
       }
       for (i = 0; i < st.shots.length; i++)   if (!st.shots[i].dead)   st.shots[i].update(st);
+
+      /* 自機の弾は画面から出たら消す（原作と同じ）。
+         以前は「ステージの端」まで飛び続けていたため、開けた場所では
+         同時発射数の上限がなかなか空かず、連射できない場面があった。
+         敵弾は画面外から降ってくる技があるので対象にしない。        */
+      var viewW2 = gfx.W / st.zoom, viewH2 = gfx.H / st.zoom;
+      var cullL2 = st.camX - 32, cullR2 = st.camX + viewW2 + 32;
+      var cullB2 = st.camY + viewH2 + 96;
+      for (i = 0; i < st.shots.length; i++) {
+        var psh = st.shots[i];
+        if (psh.dead || psh.team !== 'player') continue;
+        var pcx2 = psh.cx();
+        if (pcx2 < cullL2 || pcx2 > cullR2 || psh.cy() > cullB2) psh.dead = true;
+      }
       for (i = 0; i < st.hazards.length; i++) if (!st.hazards[i].dead) st.hazards[i].update(st);
       for (i = 0; i < st.items.length; i++)   if (!st.items[i].dead)   st.items[i].update(st);
 
@@ -10219,12 +10271,14 @@ G.scenes.ending = (function () {
       acc -= STEP;
       steps++;
 
-      G.input.update();
-
-      // スローモー：timeScale の分だけ更新回数を間引く
+      /* スローモー：timeScale の分だけ更新回数を間引く。
+         入力の更新もここに含めるのが重要。外に出すと、間引かれた
+         フレームで「押した瞬間」が消費され、シーンに届かないまま
+         失われてしまう（ボタンが効かない原因になる）。          */
       slowAcc += G.fx.timeScale;
       if (slowAcc >= 1) {
         slowAcc -= 1;
+        G.input.update();
         G.fx.update();
         G.scene.update();
       }

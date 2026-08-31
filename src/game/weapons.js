@@ -510,12 +510,17 @@ G.weapons = (function () {
      ====================================================================== */
   var SHOOTERS = {
     buster: function (pl, st, chargeLevel) {
-      // 画面内のバスター弾は3発まで（原作準拠）
+      /* 画面内のバスター弾に上限を設ける（原作準拠）。
+         原作は横256pxで3発。この game は端末に合わせて画面が広いぶん
+         弾が画面外へ出るまで時間がかかるので、幅に比例させて
+         連射の体感が原作と同じになるようにしている（3〜5発）。   */
+      var cap = U.clamp(Math.round(3 * gfx.W / 300), 3, 5);
       var n = 0;
       for (var i = 0; i < st.shots.length; i++) {
-        if (st.shots[i] instanceof Buster && st.shots[i].level === 0) n++;
+        var sh = st.shots[i];
+        if (sh.team === 'player' && sh instanceof Buster && sh.level === 0) n++;
       }
-      if (chargeLevel === 0 && n >= 3) return false;
+      if (chargeLevel === 0 && n >= cap) return false;
       var p = pl.muzzle();
       st.shots.push(new Buster(p.x, p.y, pl.face, chargeLevel));
       if (chargeLevel === 0) A.sfx.shot();

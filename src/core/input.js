@@ -64,12 +64,18 @@ G.input = (function () {
   var touches = {};
   var pendingTaps = [];   // フレーム間に発生したタップを溜めておく
   var touchHeld = {};   // タッチ由来の押下状態
-  // 「押した」ラッチ：押下が1フレーム未満でも必ず1回は pressed が立つようにする。
-  // （素早いタップやキー連打が取りこぼされるのを防ぐ）
-  var latch = {};
-  function clearTouchHeld() { BTN.forEach(function (b) { touchHeld[b] = false; latch[b] = false; }); }
+  /* 押下のキュー：フレームとフレームの間に起きたタップを溜めておき、
+     1フレームに1回ずつ「押して離す」を再生する。
+     真偽値のラッチだと、1フレーム内に2回タップされたときに
+     1回へ潰れて取りこぼしていた（処理落ちしたフレームで顕著）。   */
+  var pending = {};
+  var MAX_PENDING = 4;
+  function clearTouchHeld() { BTN.forEach(function (b) { touchHeld[b] = false; pending[b] = 0; }); }
   clearTouchHeld();
-  function pressLatch(name) { touchHeld[name] = true; latch[name] = true; }
+  function pressLatch(name) {
+    touchHeld[name] = true;
+    pending[name] = Math.min(MAX_PENDING, (pending[name] || 0) + 1);
+  }
 
   function assign(id, p) {
     layout();
@@ -192,7 +198,11 @@ G.input = (function () {
     var keyHeld = {};
     window.addEventListener('keydown', function (e) {
       var b = KEYMAP[e.code];
-      if (b) { keyHeld[b] = true; latch[b] = true; e.preventDefault(); }
+      if (b) {
+        if (!keyHeld[b]) pending[b] = Math.min(MAX_PENDING, (pending[b] || 0) + 1);
+        keyHeld[b] = true;
+        e.preventDefault();
+      }
     });
     window.addEventListener('keyup', function (e) {
       var b = KEYMAP[e.code];
@@ -219,8 +229,19 @@ G.input = (function () {
     for (var i = 0; i < BTN.length; i++) {
       var b = BTN[i];
       prevHeld[b] = held[b];
-      held[b] = !!(touchHeld[b] || api._keyHeld[b] || latch[b]);
-      latch[b] = false;                       // ラッチは1フレームだけ有効
+      var realHeld = !!(touchHeld[b] || api._keyHeld[b]);
+      if (realHeld) {
+        // 指(キー)が実際に押されている間は、そのまま押下として扱う
+        held[b] = true;
+        pending[b] = 0;
+      } else if (pending[b] > 0) {
+        // 溜まっているタップを「離す→押す」の順に1フレームずつ再生する。
+        // こうしないと押下が続いたままになり、次の pressed が立たない。
+        if (prevHeld[b]) held[b] = false;
+        else { held[b] = true; pending[b]--; }
+      } else {
+        held[b] = false;
+      }
       pressed[b]  = held[b] && !prevHeld[b];
       released[b] = !held[b] && prevHeld[b];
       if (pressed[b]) api.anyPressed = true;
@@ -234,7 +255,11 @@ G.input = (function () {
 
   // シーン切り替え時に押下状態をリセット（前シーンのタップが誤爆しないように）
   function consumeAll() {
-    BTN.forEach(function (b) { prevHeld[b] = held[b] = true; pressed[b] = released[b] = false; latch[b] = false; });
+    BTN.forEach(function (b) {
+      prevHeld[b] = held[b] = true;
+      pressed[b] = released[b] = false;
+      pending[b] = 0;
+    });
     api.anyPressed = false;
   }
 

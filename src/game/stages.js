@@ -248,6 +248,7 @@ G.stages = (function () {
       breakable: true,
       tierAt: [0, 0, 0],   // 最終ステージだけは最初から全段階が解禁
       density: 1.35,       // 敵の数も増やす
+      midBoss: true,       // 中ボス（巨大蜂）が出るのはここだけ
       drawBg: function (camX, camY, t) {
         gfx.clear(this.sky);
         // 遠くにそびえる要塞
@@ -818,7 +819,7 @@ G.stages = (function () {
          これを決めた回は、下のギミック強制配置を行わない。
          先に決めても後から上書きされると部屋が消えてしまうため。   */
       var placedMid = false;
-      if (!midBossPlaced && prog >= 0.44 && endX - S.x > 40 && !RISKY[last]) {
+      if (!midBossPlaced && theme.midBoss && prog >= 0.44 && endX - S.x > 40 && !RISKY[last]) {
         n = 'midBossRoom';
         midBossPlaced = true;
         placedMid = true;
