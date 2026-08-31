@@ -20,7 +20,7 @@ module.exports = async ({ page, waitScene }) => {
                        c === 'o' || c === 'p' || c === 'c';   // 足を乗せられるもの
     const out = [];
 
-    ['cut','elec','ice','fire','bomb','guts'].forEach(key => {
+    ['cut','elec','ice','fire','bomb','guts','final'].forEach(key => {
       const d = G.stages.build(key);
       const W = d.w, H = d.h;
       const g = d.rows.map(r => r.split(''));

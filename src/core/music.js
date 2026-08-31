@@ -174,6 +174,40 @@ G.music = (function () {
         'A1 -  -  -  A1 -  A1 -  E2 -  -  -  E2 -  E2 - ' ] }
     ], ['k -  -  -  k  -  k  -  s  -  -  -  k  -  s  - ']),
 
+
+    /* ---- 最終ステージ：重く不穏に下降していく ---- */
+    st_final: T(166, true, [
+      { wave: 0.25, vol: 0.15, bars: [
+        'A4 =  A4 =  C5 =  B4 =  A4 =  G4 =  F4 =  E4 = ',
+        'D4 =  D4 =  F4 =  E4 =  D4 =  C4 =  B3 =  A3 = ' ] },
+      { wave: 0.125, vol: 0.06, bars: [
+        'E5 -  -  -  E5 -  -  -  D5 -  -  -  C5 -  -  - ',
+        'A4 -  -  -  A4 -  -  -  G4 -  -  -  E4 -  -  - ' ] },
+      { wave: 'tri', vol: 0.25, bars: [
+        'A1 A1 A1 A1 A1 A1 A1 A1 F1 F1 F1 F1 F1 F1 F1 F1',
+        'D1 D1 D1 D1 D1 D1 D1 D1 E1 E1 E1 E1 E1 E1 E1 E1' ] }
+    ], ['k -  h  -  s  -  h  -  k  -  h  k  s  -  h  - ']),
+
+    /* ---- ラスボス戦：一段速く、休みなく畳みかける ---- */
+    final: T(184, true, [
+      { wave: 0.5, vol: 0.16, bars: [
+        'A4 A4 =  A4 C5 =  B4 =  A4 A4 =  A4 E5 =  D5 = ',
+        'C5 C5 =  C5 E5 =  D5 =  C5 =  B4 =  A4 =  =  = ',
+        'F5 =  E5 =  D5 =  C5 =  B4 =  A4 =  G4 =  F4 = ',
+        'E4 =  =  =  A4 =  =  =  E5 =  =  =  A5 =  -  - ' ] },
+      { wave: 0.25, vol: 0.08, bars: [
+        'E4 =  =  =  =  =  =  =  A4 =  =  =  =  =  =  = ',
+        'G4 =  =  =  =  =  =  =  E4 =  =  =  =  =  =  = ',
+        'A4 =  =  =  =  =  =  =  D5 =  =  =  =  =  =  = ',
+        'C5 =  =  =  E5 =  =  =  A5 =  =  =  =  =  -  - ' ] },
+      { wave: 'tri', vol: 0.26, bars: [
+        'A1 A1 A1 A1 A1 A1 A1 A1 A1 A1 A1 A1 A1 A1 A1 A1',
+        'F1 F1 F1 F1 F1 F1 F1 F1 G1 G1 G1 G1 G1 G1 G1 G1',
+        'D2 D2 D2 D2 D2 D2 D2 D2 C2 C2 C2 C2 C2 C2 C2 C2',
+        'E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2' ] }
+    ], ['k -  h  k  s  -  h  -  k  -  h  k  s  -  h  h ',
+        'k -  h  k  s  -  h  -  k  k  h  h  s  s  s  s ']),
+
     /* ---- ジングル類（ループしない） ---- */
     victory: T(150, false, [
       { wave: 0.5, vol: 0.18, bars: [

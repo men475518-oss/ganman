@@ -5,7 +5,7 @@ module.exports = async ({ page, waitScene }) => {
     const TILE_NAMES = { '<':'コンベア左', '>':'コンベア右', 'o':'明滅A', 'p':'明滅B',
                          'c':'崩れる床', '~':'水', 'I':'氷', 'B':'壊せる', 'L':'はしご', '^':'トゲ' };
     const res = {};
-    ['cut','elec','ice','fire','bomb','guts'].forEach(k => {
+    ['cut','elec','ice','fire','bomb','guts','final'].forEach(k => {
       const d = G.stages.build(k);
       const tiles = {};
       d.rows.forEach(r => { for (const c of r) if (TILE_NAMES[c]) tiles[TILE_NAMES[c]] = (tiles[TILE_NAMES[c]]||0)+1; });

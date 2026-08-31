@@ -108,7 +108,7 @@ G.scenes.select = (function () {
       }
       if (confirmT > 30) {
         var k = GRID[sel];
-        if (k === 'center') G.scene.go('ending', null, { fade: 30 });
+        if (k === 'center') G.scene.go('stage', { key: 'final' }, { fade: 26 });
         else G.scene.go('stage', { key: k }, { fade: 24 });
       }
       return;

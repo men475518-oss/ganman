@@ -209,9 +209,17 @@ G.weapons = (function () {
     });
     this.owner = owner;
     this.ang = 0;
+    this.continuous = true;   // 当たり続ける武器（ボスには一撃を軽くする）
+    this.hitPause = 0;
   });
+  FireShield.prototype.hitbox = function () {
+    // 当てた直後はしばらく判定を消す（毎フレーム当たって即死させないため）
+    if (this.hitPause > 0) return { x: -9999, y: -9999, w: 0, h: 0 };
+    return { x: this.x, y: this.y, w: this.w, h: this.h };
+  };
   FireShield.prototype.update = function () {
     this.age++;
+    if (this.hitPause > 0) this.hitPause--;
     if (--this.life <= 0) { this.dead = true; return; }
     this.ang += 0.19;
     var r = 24;
@@ -222,7 +230,10 @@ G.weapons = (function () {
         life: 12, size: 3, color: '#FCE0A8', color2: '#D82800', type: 'circle', light: true });
     }
   };
-  FireShield.prototype.onHit = function () { return false; };  // 消えずに残る
+  FireShield.prototype.onHit = function () {
+    this.hitPause = 34;      // 消えずに残るが、しばらく当たらなくなる
+    return false;
+  };
   FireShield.prototype.draw = function (cx, cy) {
     var x = this.cx() - cx, y = this.cy() - cy;
     var ctx = gfx.ctx;

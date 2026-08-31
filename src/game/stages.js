@@ -233,7 +233,50 @@ G.stages = (function () {
           gfx.rect(sx, sy, 2, 1, '#8C5828');
         }
       }
-    }
+    },
+
+    /* --- 最終ステージ：オメガ要塞。最初から全種類の敵が出る --- */
+    final: {
+      key: 'final', name: 'OMEGA CORE', bgm: 'st_final', seed: 7007,
+      sky: '#100418',
+      solid: '#4C2C6C', solidHi: '#8058A8', solidLo: '#28103C',
+      edge: '#F878F8', deco: '#00E8D8', ladder: '#F878F8',
+      spike: '#FCFCFC', spikeBase: '#4C2C6C', ice: '#3CBCFC', brk: '#5C3C7C',
+      mix: ['met', 'turret', 'fly', 'hop', 'spike',
+            'crawl', 'bat', 'split', 'riser', 'joe', 'tank'],
+      gimmicks: ['crusherHall', 'blinkBridge', 'crumbleRun', 'conveyor'],
+      breakable: true,
+      tierAt: [0, 0, 0],   // 最終ステージだけは最初から全段階が解禁
+      density: 1.35,       // 敵の数も増やす
+      drawBg: function (camX, camY, t) {
+        gfx.clear(this.sky);
+        // 遠くにそびえる要塞
+        skyline(camX, 0.14, gfx.H - 22, 46, 96, '#1C0A2C', 2);
+        skyline(camX, 0.30, gfx.H - 14, 28, 62, '#2C1040', 8);
+        // 窓明かり
+        var off = camX * 0.30;
+        for (var i = -1; i < gfx.W / 28 + 2; i++) {
+          var idx = Math.floor(off / 28) + i;
+          var bh = 12 + hash(idx * 8 + 8) * 62;
+          var bx = idx * 28 - off;
+          for (var wy = 6; wy < bh - 6; wy += 12) {
+            if (hash(idx * 31 + wy + Math.floor(t / 90)) > 0.7) {
+              gfx.rect(bx + 8, gfx.H - 14 - bh + wy, 5, 5, '#F878F8');
+            }
+          }
+        }
+        // 立ちのぼる火の粉
+        for (var k = 0; k < 20; k++) {
+          var sx = (hash(k * 13 + 5) * 1500 - camX * 0.45) % (gfx.W + 20);
+          if (sx < -10) sx += gfx.W + 20;
+          var sy = gfx.H - ((t * (0.6 + hash(k) * 0.8) + hash(k * 3) * 420) % (gfx.H + 40));
+          gfx.rect(sx, sy, 2, 2, hash(k * 7) > 0.5 ? '#F878F8' : '#6844FC');
+        }
+        // ときどき走る稲光
+        var fl = Math.floor(t / 190);
+        if ((t % 190) < 6 && hash(fl * 3) > 0.4) gfx.veil('#A088FC', 0.16);
+      }
+    },
   };
 
   /* ======================================================================
@@ -280,12 +323,13 @@ G.stages = (function () {
   function pickEnemy(S) {
     var p = progress(S);
     var mix = S.theme.mix;
+    var tierAt = S.theme.tierAt || TIER_AT;   // 最終ステージは全段階が最初から
     var pool = [], weights = [], total = 0;
     for (var i = 0; i < mix.length; i++) {
       var t = TIER[mix[i]] || 0;
-      if (p < TIER_AT[t]) continue;                 // まだ解禁されていない
+      if (p < tierAt[t]) continue;                  // まだ解禁されていない
       // 基本の敵は後半すこし減り、新顔は後半ほど増える
-      var w = (t === 0) ? (1.2 - p * 0.4) : (0.6 + (p - TIER_AT[t]) * 2.0);
+      var w = (t === 0) ? (1.2 - p * 0.4) : (0.6 + (p - tierAt[t]) * 2.0);
       pool.push(mix[i]); weights.push(w); total += w;
     }
     if (!pool.length) return mix[0];
@@ -319,7 +363,7 @@ G.stages = (function () {
     var span = x1 - x0;
     if (span < 2) return;
     var p = progress(S);
-    var want = n * (0.45 + p * 1.55);
+    var want = n * (0.45 + p * 1.55) * (S.theme.density || 1);
     var count = Math.floor(want);
     if (U.rnd() < want - count) count++;            // 端数は確率で1体足す
     if (p < 0.08) count = Math.min(count, 1);       // 出だしは肩慣らし
@@ -748,7 +792,9 @@ G.stages = (function () {
          「危険パターンの連続回避」で平地に化けて消えてしまうため。
          危険パターンの直後や、まだ早い場合は見送り、次の周回で改めて置く。 */
       var cand = mustHave[0];
-      if (mustHave.length && S.x >= nextForce && endX - S.x > 22 && !RISKY[last] &&
+      // 残りの幅が心細くなったら、間隔を待たずに詰め込む
+      var urgent = mustHave.length > 0 && (endX - S.x) < mustHave.length * 22;
+      if (mustHave.length && (S.x >= nextForce || urgent) && endX - S.x > 22 && !RISKY[last] &&
           !(PATTERN_MIN_P[cand] && prog < PATTERN_MIN_P[cand])) {
         n = mustHave.shift();
         nextForce = S.x + slot;

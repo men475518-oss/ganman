@@ -245,7 +245,7 @@ G.scenes.stage = (function () {
       var b = st.boss;
       if (b && !b.dead && b.state !== 'entrance' && U.overlap(s.hitbox(), b.hitbox())) {
         if (s.freeze) b.frozen = Math.min(60, s.freeze / 3);
-        b.damage(s.dmg, s.element, st);
+        b.damage(s.dmg, s.element, st, s);
         if (s.onHit(b, st)) s.dead = true;
       }
     }
@@ -470,7 +470,7 @@ G.scenes.stage = (function () {
         st.phaseT = 0;
         pl.controlEnabled = true;
         G.input.consumeAll();
-        G.music.play('boss');
+        G.music.play(st.key === 'final' ? 'final' : 'boss');
       }
     }
   }
@@ -520,14 +520,21 @@ G.scenes.stage = (function () {
       G.fx.sparkle(pl.cx(), pl.cy(), 14, '#FCE0A8');
     }
     if (st.clearT > 170) {
-      // 進行状況を保存して武器ゲット画面へ
+      // 進行状況を保存
       G.game.cleared[st.key] = true;
       G.game.lives = pl.lives;
       G.game.tanks = st.tanks;
-      var dropId = st.boss.drop;
-      if (G.game.weapons.indexOf(dropId) < 0) G.game.weapons.push(dropId);
       for (var id in pl.ammo) if (pl.ammo.hasOwnProperty(id)) G.game.ammo[id] = pl.ammo[id];
-      G.game.ammo[dropId] = G.Player.MAX_AMMO;
+
+      // 最終ステージには奪う武器が無いので、そのままエンディングへ
+      if (st.key === 'final') {
+        G.scene.go('ending', null, { fade: 40 });
+        return;
+      }
+
+      var dropId = st.boss.drop;
+      if (dropId && G.game.weapons.indexOf(dropId) < 0) G.game.weapons.push(dropId);
+      if (dropId) G.game.ammo[dropId] = G.Player.MAX_AMMO;
       G.scene.go('weaponget', { weapon: dropId, boss: st.key }, { fade: 30 });
     }
   }
