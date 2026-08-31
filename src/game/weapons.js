@@ -283,7 +283,8 @@ G.weapons = (function () {
   });
   Bomb.prototype.explodeNow = function (st) {
     this.dead = true;
-    st.spawnBlast(this.cx(), this.cy(), 40, 6, 'bomb', 'player');
+    // 投げた側の陣営を引き継ぐ（影のラスボスが投げた爆弾は敵の攻撃になる）
+    st.spawnBlast(this.cx(), this.cy(), 40, 6, 'bomb', this.team);
   };
   Bomb.prototype.update = function (st) {
     this.baseStep();

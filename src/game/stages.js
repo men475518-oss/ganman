@@ -15,7 +15,7 @@ G.stages = (function () {
   'use strict';
   var U = G.util, gfx = G.gfx;
 
-  var LW = 196;    // ステージの横幅（タイル数）
+  var LW = 218;    // ステージの横幅（タイル数）。中ボス部屋のぶん長くしてある
   var LH = 20;     // 縦（タイル数）= 320px。画面は224pxなので少し縦スクロールする
   var GY = 15;     // 基本の地面の高さ（この行から下が地面）
   var ARENA_W = 28;// ボス部屋の幅（タイル）＝448px。どんな画面幅でも収まる
@@ -156,7 +156,7 @@ G.stages = (function () {
       edge: '#B8F818', deco: '#F8D878', ladder: '#B8F818',
       spike: '#BCBCBC', spikeBase: '#3C6C3C', ice: '#3CBCFC', brk: '#5C8C4C',
       mix: ['met', 'turret', 'hop', 'split', 'tank'],
-      gimmicks: ['crusherHall', 'conveyor'],
+      gimmicks: ['crusherHall', 'conveyor', 'movingGap'],
       drawBg: function (camX, camY, t) {
         gfx.clear(this.sky);
         skyline(camX, 0.2, gfx.H - 24, 34, 70, '#14301C', 4);
@@ -547,16 +547,37 @@ G.stages = (function () {
     },
 
 
+
+    /* 中ボスの部屋。広い平地を確保し、入口に中間ポイントを置く。
+       幅は画面より少し広くして、カメラが自機を追える余地を残している。 */
+    midBossRoom: function (S) {
+      var pre = 3, w = 24, post = 3, i;
+      for (i = 0; i < pre + w + post; i++) fillCol(S, S.x + i, S.gl);
+      var x0 = (S.x + pre) * T;
+      var x1 = (S.x + pre + w) * T;
+      S.midBoss = {
+        arena: { x0: x0, x1: x1, floorY: S.gl * T },
+        triggerX: x0 + 56,
+        spawnX: x0 + (x1 - x0) * 0.72,
+        spawnY: S.gl * T
+      };
+      // 部屋に入る直前を中間ポイントにする（負けてもすぐ再戦できる）
+      S.midCheckpoint = { x: (S.x + 1) * T, y: S.gl * T };
+      S.items.push({ kind: 'hpSmall', x: (S.x + 1) * T, y: (S.gl - 1) * T + 8 });
+      S.x += pre + w + post;
+    },
+
     /* --- ここからギミック系のパターン --- */
 
     /* ベルトコンベア：流れに乗ると速く、逆らうと進みにくい */
     conveyor: function (S) {
       var pre = 2, w = 9, post = 2, i;
       for (i = 0; i < pre; i++) fillCol(S, S.x + i, S.gl);
-      var dir = U.rnd() < 0.5 ? '<' : '>';
+      // 前半と後半で流れる向きを逆にする。
+      // 進行方向に押される区間と、逆らって歩く区間の両方を味わえる。
       for (i = 0; i < w; i++) {
         fillCol(S, S.x + pre + i, S.gl);
-        put(S, S.x + pre + i, S.gl, dir);
+        put(S, S.x + pre + i, S.gl, i < w / 2 ? '>' : '<');
       }
       for (i = 0; i < post; i++) fillCol(S, S.x + pre + w + i, S.gl);
       populate(S, S.x + pre, S.x + pre + w, S.gl, 2);
@@ -702,7 +723,7 @@ G.stages = (function () {
   /* 出現しやすさ（数字が大きいほどよく出る） */
   var WEIGHTS = {
     flat: 5, pit: 4, platforms: 3, stepUp: 3, stepDown: 3,
-    spikeRun: 2, ladder: 3, corridor: 2, bigPit: 2, movingGap: 2, tower: 3,
+    spikeRun: 2, ladder: 3, corridor: 2, bigPit: 2, movingGap: 3, tower: 3,
     breakWall: 3,
     // ギミック系（テーマごとに使えるものが違う）
     conveyor: 3, blinkBridge: 3, crumbleRun: 3, waterPool: 3,
@@ -724,6 +745,10 @@ G.stages = (function () {
      ====================================================================== */
   var RISKY = { pit: 1, bigPit: 1, spikeRun: 1, movingGap: 1,
                 blinkBridge: 1, crumbleRun: 1, crusherHall: 1 };
+  /* 差し替え先の「落ちて死なない」パターン。
+     以前は全部 flat に倒していたため平地が3割を占め、
+     他のパターンが押し出されて出番を失っていた。 */
+  var SAFE = ['flat', 'flat', 'platforms', 'stepUp', 'stepDown', 'corridor', 'tower', 'ladder'];
 
   function build(key) {
     var theme = THEMES[key];
@@ -737,7 +762,8 @@ G.stages = (function () {
       g.push(row);
     }
 
-    var S = { g: g, x: 0, gl: GY, spawns: [], items: [], theme: theme, endX: 1 };
+    var S = { g: g, x: 0, gl: GY, spawns: [], items: [], theme: theme, endX: 1,
+              patternLog: [] };
 
     /* --- スタート地帯（安全な平地） --- */
     for (x = 0; x < 12; x++) fillCol(S, x, GY);
@@ -767,6 +793,7 @@ G.stages = (function () {
 
     /* そのステージの「目玉ギミック」は運任せにせず、必ず1回は出す。
        ステージを等間隔に区切って、区切りを越えたら未登場のものを強制配置する。 */
+    var midBossPlaced = false;
     var mustHave = (theme.gimmicks || []).slice();
     if (theme.breakable) mustHave.push('breakWall');
     var slot = (endX - S.x) / (mustHave.length + 1);
@@ -777,8 +804,8 @@ G.stages = (function () {
 
       // --- 抽選結果に対する調整 ---
       // 同じパターンの連続と、危険パターンの連続は避ける
-      if (n === last) n = 'flat';
-      if (RISKY[last] && RISKY[n]) n = 'flat';
+      if (n === last) n = U.pick(SAFE);
+      if (RISKY[last] && RISKY[n]) n = U.pick(SAFE);
       // 残り幅が足りないなら平地で埋める
       if (endX - S.x < 14) n = 'flat';
       // 高いところで tower/platforms を始めると天井を突き抜けるので調整
@@ -787,23 +814,38 @@ G.stages = (function () {
       var prog = progress(S);
       if (PATTERN_MIN_P[n] && prog < PATTERN_MIN_P[n]) n = 'flat';
 
+      /* --- 中ボスの部屋を中盤に1回だけ置く（最優先） ---
+         これを決めた回は、下のギミック強制配置を行わない。
+         先に決めても後から上書きされると部屋が消えてしまうため。   */
+      var placedMid = false;
+      if (!midBossPlaced && prog >= 0.44 && endX - S.x > 40 && !RISKY[last]) {
+        n = 'midBossRoom';
+        midBossPlaced = true;
+        placedMid = true;
+      }
+
       /* --- 未登場の目玉ギミックを強制配置 ---
          上の調整より後に行う。先に強制すると、直後の
          「危険パターンの連続回避」で平地に化けて消えてしまうため。
          危険パターンの直後や、まだ早い場合は見送り、次の周回で改めて置く。 */
       var cand = mustHave[0];
-      // 残りの幅が心細くなったら、間隔を待たずに詰め込む
-      var urgent = mustHave.length > 0 && (endX - S.x) < mustHave.length * 22;
-      if (mustHave.length && (S.x >= nextForce || urgent) && endX - S.x > 22 && !RISKY[last] &&
+      /* 残りの幅が心細くなったら、間隔を待たずに詰め込む。
+         しきい値は「置けるうちに」効く必要がある点に注意。
+         以前は urgent の条件が下の (endX - S.x > 22) と排他になっていて、
+         最後の1つが永久に置かれないままだった。                      */
+      var urgent = mustHave.length > 0 && (endX - S.x) < mustHave.length * 30 + 25;
+      if (!placedMid && mustHave.length && (S.x >= nextForce || urgent) &&
+          endX - S.x > 22 && (!RISKY[last] || urgent) &&
           !(PATTERN_MIN_P[cand] && prog < PATTERN_MIN_P[cand])) {
         n = mustHave.shift();
         nextForce = S.x + slot;
-      } else {
+      } else if (!placedMid) {
         // 抽選で先に出たものは「未登場リスト」から外す
         var mi = mustHave.indexOf(n);
         if (mi >= 0) mustHave.splice(mi, 1);
       }
       PATTERNS[n](S);
+      S.patternLog.push(n);      // どのパターンが採用されたかの記録（調整用）
       last = n;
 
       // 中間ポイント（半分を過ぎた最初の安全な平地）
@@ -872,7 +914,10 @@ G.stages = (function () {
       playerStart: playerStart,
       spawns: S.spawns,
       items: S.items,
-      checkpoint: checkpoint || { x: ((LW * 0.5) | 0) * T, y: GY * T },
+      // 中ボス部屋がある場合はその入口を中間ポイントにする
+      checkpoint: S.midCheckpoint || checkpoint || { x: ((LW * 0.5) | 0) * T, y: GY * T },
+      midBoss: S.midBoss || null,
+      patternLog: S.patternLog,
       boss: {
         key: key,
         doorX: doorTx * T,

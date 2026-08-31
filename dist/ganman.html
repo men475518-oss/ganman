@@ -2360,6 +2360,27 @@ G.sprites = (function () {
     'KKKKKKKKKKKKKK'
   ];
 
+
+  /* --- 中ボスが放つ小型蜂。ふらふら追ってくる --- */
+  var DRONE1 = [
+    '..KK....KK..',
+    '.KWWK..KWWK.',
+    '..KYYYYYYK..',
+    '.KYKYYKYYRK.',
+    '.KYYYYYYYRK.',
+    '..KYKYYKYK..',
+    '...KKKKKK...'
+  ];
+  var DRONE2 = [
+    '............',
+    'KKWWKKKKWWKK',
+    '..KYYYYYYK..',
+    '.KYKYYKYYRK.',
+    '.KYYYYYYYRK.',
+    '..KYKYYKYK..',
+    '...KKKKKK...'
+  ];
+
   /* ======================================================================
      アイテムのドット絵
      ====================================================================== */
@@ -2445,6 +2466,35 @@ G.sprites = (function () {
   ];
 
   /* ======================================================================
+     プレイヤーの全フレームを、指定パレットで焼いて1セット返す。
+
+     色だけ差し替えれば「主人公の色違い」がそのまま作れるので、
+     ラスボス（主人公の姿を模した敵）はこれを使って描いている。
+     ====================================================================== */
+  function makePlayerSet(pal) {
+    var p = {};
+    p.idle  = S(assemble(HEAD, TORSO, LEGS.idle), pal);
+    p.run   = [ S(assemble(HEAD, TORSO, LEGS.run1), pal),
+                S(assemble(HEAD, TORSO, LEGS.run2), pal),
+                S(assemble(HEAD, TORSO, LEGS.run3), pal) ];
+    p.jump  = S(assemble(HEAD, TORSO, LEGS.jump), pal);
+    p.hurt  = S(assemble(HEAD_HURT, TORSO, LEGS.jump), pal);
+    p.climb = [ S(assemble(HEAD, TORSO_CLIMB, LEGS.climb1), pal),
+                S(assemble(HEAD, TORSO_CLIMB, LEGS.climb2), pal) ];
+    p.buster = S(BUSTER, pal);
+    p.armUp  = S(ARM_UP, pal);
+    p.W = p.idle.w; p.H = p.idle.h;
+    return p;
+  }
+
+  /* 名前付きで色違いセットを取り出す（一度焼いたら使い回す） */
+  var paletteCache = {};
+  function playerSet(name, pal) {
+    if (!paletteCache[name]) paletteCache[name] = makePlayerSet(pal);
+    return paletteCache[name];
+  }
+
+  /* ======================================================================
      起動時に全部焼く
      ====================================================================== */
   var built = false;
@@ -2455,18 +2505,7 @@ G.sprites = (function () {
     built = true;
 
     /* --- プレイヤー --- */
-    var p = out.player;
-    p.idle  = S(assemble(HEAD, TORSO, LEGS.idle));
-    p.run   = [ S(assemble(HEAD, TORSO, LEGS.run1)),
-                S(assemble(HEAD, TORSO, LEGS.run2)),
-                S(assemble(HEAD, TORSO, LEGS.run3)) ];
-    p.jump  = S(assemble(HEAD, TORSO, LEGS.jump));
-    p.hurt  = S(assemble(HEAD_HURT, TORSO, LEGS.jump));
-    p.climb = [ S(assemble(HEAD, TORSO_CLIMB, LEGS.climb1)),
-                S(assemble(HEAD, TORSO_CLIMB, LEGS.climb2)) ];
-    p.buster = S(BUSTER);
-    p.armUp  = S(ARM_UP);
-    p.W = p.idle.w; p.H = p.idle.h;
+    out.player = makePlayerSet(PPAL);
 
     /* --- 敵 --- */
     var e = out.enemy;
@@ -2482,6 +2521,7 @@ G.sprites = (function () {
     e.split  = [ S(SPLIT_BIG, EPAL), S(SPLIT_SMALL, EPAL) ];
     e.riser  = [ S(RISER, EPAL) ];
     e.vent   = [ S(VENT, EPAL) ];
+    e.drone  = [ S(DRONE1, EPAL), S(DRONE2, EPAL) ];
 
     /* --- アイテム --- */
     var it = out.item;
@@ -2569,7 +2609,8 @@ G.sprites = (function () {
     get enemy() { return out.enemy; },
     get item() { return out.item; },
     S: S, PPAL: PPAL, EPAL: EPAL, IPAL: IPAL,
-    chassis: chassis
+    chassis: chassis,
+    makePlayerSet: makePlayerSet, playerSet: playerSet
   };
 })();
 
@@ -3127,7 +3168,7 @@ G.stages = (function () {
   'use strict';
   var U = G.util, gfx = G.gfx;
 
-  var LW = 196;    // ステージの横幅（タイル数）
+  var LW = 218;    // ステージの横幅（タイル数）。中ボス部屋のぶん長くしてある
   var LH = 20;     // 縦（タイル数）= 320px。画面は224pxなので少し縦スクロールする
   var GY = 15;     // 基本の地面の高さ（この行から下が地面）
   var ARENA_W = 28;// ボス部屋の幅（タイル）＝448px。どんな画面幅でも収まる
@@ -3268,7 +3309,7 @@ G.stages = (function () {
       edge: '#B8F818', deco: '#F8D878', ladder: '#B8F818',
       spike: '#BCBCBC', spikeBase: '#3C6C3C', ice: '#3CBCFC', brk: '#5C8C4C',
       mix: ['met', 'turret', 'hop', 'split', 'tank'],
-      gimmicks: ['crusherHall', 'conveyor'],
+      gimmicks: ['crusherHall', 'conveyor', 'movingGap'],
       drawBg: function (camX, camY, t) {
         gfx.clear(this.sky);
         skyline(camX, 0.2, gfx.H - 24, 34, 70, '#14301C', 4);
@@ -3659,16 +3700,37 @@ G.stages = (function () {
     },
 
 
+
+    /* 中ボスの部屋。広い平地を確保し、入口に中間ポイントを置く。
+       幅は画面より少し広くして、カメラが自機を追える余地を残している。 */
+    midBossRoom: function (S) {
+      var pre = 3, w = 24, post = 3, i;
+      for (i = 0; i < pre + w + post; i++) fillCol(S, S.x + i, S.gl);
+      var x0 = (S.x + pre) * T;
+      var x1 = (S.x + pre + w) * T;
+      S.midBoss = {
+        arena: { x0: x0, x1: x1, floorY: S.gl * T },
+        triggerX: x0 + 56,
+        spawnX: x0 + (x1 - x0) * 0.72,
+        spawnY: S.gl * T
+      };
+      // 部屋に入る直前を中間ポイントにする（負けてもすぐ再戦できる）
+      S.midCheckpoint = { x: (S.x + 1) * T, y: S.gl * T };
+      S.items.push({ kind: 'hpSmall', x: (S.x + 1) * T, y: (S.gl - 1) * T + 8 });
+      S.x += pre + w + post;
+    },
+
     /* --- ここからギミック系のパターン --- */
 
     /* ベルトコンベア：流れに乗ると速く、逆らうと進みにくい */
     conveyor: function (S) {
       var pre = 2, w = 9, post = 2, i;
       for (i = 0; i < pre; i++) fillCol(S, S.x + i, S.gl);
-      var dir = U.rnd() < 0.5 ? '<' : '>';
+      // 前半と後半で流れる向きを逆にする。
+      // 進行方向に押される区間と、逆らって歩く区間の両方を味わえる。
       for (i = 0; i < w; i++) {
         fillCol(S, S.x + pre + i, S.gl);
-        put(S, S.x + pre + i, S.gl, dir);
+        put(S, S.x + pre + i, S.gl, i < w / 2 ? '>' : '<');
       }
       for (i = 0; i < post; i++) fillCol(S, S.x + pre + w + i, S.gl);
       populate(S, S.x + pre, S.x + pre + w, S.gl, 2);
@@ -3814,7 +3876,7 @@ G.stages = (function () {
   /* 出現しやすさ（数字が大きいほどよく出る） */
   var WEIGHTS = {
     flat: 5, pit: 4, platforms: 3, stepUp: 3, stepDown: 3,
-    spikeRun: 2, ladder: 3, corridor: 2, bigPit: 2, movingGap: 2, tower: 3,
+    spikeRun: 2, ladder: 3, corridor: 2, bigPit: 2, movingGap: 3, tower: 3,
     breakWall: 3,
     // ギミック系（テーマごとに使えるものが違う）
     conveyor: 3, blinkBridge: 3, crumbleRun: 3, waterPool: 3,
@@ -3836,6 +3898,10 @@ G.stages = (function () {
      ====================================================================== */
   var RISKY = { pit: 1, bigPit: 1, spikeRun: 1, movingGap: 1,
                 blinkBridge: 1, crumbleRun: 1, crusherHall: 1 };
+  /* 差し替え先の「落ちて死なない」パターン。
+     以前は全部 flat に倒していたため平地が3割を占め、
+     他のパターンが押し出されて出番を失っていた。 */
+  var SAFE = ['flat', 'flat', 'platforms', 'stepUp', 'stepDown', 'corridor', 'tower', 'ladder'];
 
   function build(key) {
     var theme = THEMES[key];
@@ -3849,7 +3915,8 @@ G.stages = (function () {
       g.push(row);
     }
 
-    var S = { g: g, x: 0, gl: GY, spawns: [], items: [], theme: theme, endX: 1 };
+    var S = { g: g, x: 0, gl: GY, spawns: [], items: [], theme: theme, endX: 1,
+              patternLog: [] };
 
     /* --- スタート地帯（安全な平地） --- */
     for (x = 0; x < 12; x++) fillCol(S, x, GY);
@@ -3879,6 +3946,7 @@ G.stages = (function () {
 
     /* そのステージの「目玉ギミック」は運任せにせず、必ず1回は出す。
        ステージを等間隔に区切って、区切りを越えたら未登場のものを強制配置する。 */
+    var midBossPlaced = false;
     var mustHave = (theme.gimmicks || []).slice();
     if (theme.breakable) mustHave.push('breakWall');
     var slot = (endX - S.x) / (mustHave.length + 1);
@@ -3889,8 +3957,8 @@ G.stages = (function () {
 
       // --- 抽選結果に対する調整 ---
       // 同じパターンの連続と、危険パターンの連続は避ける
-      if (n === last) n = 'flat';
-      if (RISKY[last] && RISKY[n]) n = 'flat';
+      if (n === last) n = U.pick(SAFE);
+      if (RISKY[last] && RISKY[n]) n = U.pick(SAFE);
       // 残り幅が足りないなら平地で埋める
       if (endX - S.x < 14) n = 'flat';
       // 高いところで tower/platforms を始めると天井を突き抜けるので調整
@@ -3899,23 +3967,38 @@ G.stages = (function () {
       var prog = progress(S);
       if (PATTERN_MIN_P[n] && prog < PATTERN_MIN_P[n]) n = 'flat';
 
+      /* --- 中ボスの部屋を中盤に1回だけ置く（最優先） ---
+         これを決めた回は、下のギミック強制配置を行わない。
+         先に決めても後から上書きされると部屋が消えてしまうため。   */
+      var placedMid = false;
+      if (!midBossPlaced && prog >= 0.44 && endX - S.x > 40 && !RISKY[last]) {
+        n = 'midBossRoom';
+        midBossPlaced = true;
+        placedMid = true;
+      }
+
       /* --- 未登場の目玉ギミックを強制配置 ---
          上の調整より後に行う。先に強制すると、直後の
          「危険パターンの連続回避」で平地に化けて消えてしまうため。
          危険パターンの直後や、まだ早い場合は見送り、次の周回で改めて置く。 */
       var cand = mustHave[0];
-      // 残りの幅が心細くなったら、間隔を待たずに詰め込む
-      var urgent = mustHave.length > 0 && (endX - S.x) < mustHave.length * 22;
-      if (mustHave.length && (S.x >= nextForce || urgent) && endX - S.x > 22 && !RISKY[last] &&
+      /* 残りの幅が心細くなったら、間隔を待たずに詰め込む。
+         しきい値は「置けるうちに」効く必要がある点に注意。
+         以前は urgent の条件が下の (endX - S.x > 22) と排他になっていて、
+         最後の1つが永久に置かれないままだった。                      */
+      var urgent = mustHave.length > 0 && (endX - S.x) < mustHave.length * 30 + 25;
+      if (!placedMid && mustHave.length && (S.x >= nextForce || urgent) &&
+          endX - S.x > 22 && (!RISKY[last] || urgent) &&
           !(PATTERN_MIN_P[cand] && prog < PATTERN_MIN_P[cand])) {
         n = mustHave.shift();
         nextForce = S.x + slot;
-      } else {
+      } else if (!placedMid) {
         // 抽選で先に出たものは「未登場リスト」から外す
         var mi = mustHave.indexOf(n);
         if (mi >= 0) mustHave.splice(mi, 1);
       }
       PATTERNS[n](S);
+      S.patternLog.push(n);      // どのパターンが採用されたかの記録（調整用）
       last = n;
 
       // 中間ポイント（半分を過ぎた最初の安全な平地）
@@ -3984,7 +4067,10 @@ G.stages = (function () {
       playerStart: playerStart,
       spawns: S.spawns,
       items: S.items,
-      checkpoint: checkpoint || { x: ((LW * 0.5) | 0) * T, y: GY * T },
+      // 中ボス部屋がある場合はその入口を中間ポイントにする
+      checkpoint: S.midCheckpoint || checkpoint || { x: ((LW * 0.5) | 0) * T, y: GY * T },
+      midBoss: S.midBoss || null,
+      patternLog: S.patternLog,
       boss: {
         key: key,
         doorX: doorTx * T,
@@ -4291,7 +4377,8 @@ G.weapons = (function () {
   });
   Bomb.prototype.explodeNow = function (st) {
     this.dead = true;
-    st.spawnBlast(this.cx(), this.cy(), 40, 6, 'bomb', 'player');
+    // 投げた側の陣営を引き継ぐ（影のラスボスが投げた爆弾は敵の攻撃になる）
+    st.spawnBlast(this.cx(), this.cy(), 40, 6, 'bomb', this.team);
   };
   Bomb.prototype.update = function (st) {
     this.baseStep();
@@ -5946,13 +6033,42 @@ G.enemies = (function () {
     gfx.rect(x + this.w / 2 - 3, Math.round(this.topY - 40 - camY), 2, this.y - this.topY + 42, '#7C7C8C');
   };
 
+
+  /* ======================================================================
+     ⑮ 小型蜂：中ボスが放つ子機。柔らかいがふらふら追ってくる
+     ====================================================================== */
+  var Drone = extend(function (x, y) {
+    Enemy.call(this, x, y, { hp: 1, contactDmg: 3, dropChance: 0.12 });
+    this.w = 12; this.h = 7;
+    this.ttl = 460;                 // 長く残りすぎないよう寿命を持たせる
+  });
+  Drone.prototype.update = function (st) {
+    if (this.preUpdate()) return;
+    if (--this.ttl <= 0) { this.dead = true; return; }
+    var pl = st.player;
+    var a = Math.atan2(pl.cy() - this.cy(), pl.cx() - this.cx());
+    this.vx = U.lerp(this.vx, Math.cos(a) * 1.4, 0.035);
+    this.vy = U.lerp(this.vy, Math.sin(a) * 1.1, 0.035);
+    this.x += this.vx;
+    this.y += this.vy + Math.sin(this.age * 0.22) * 0.45;
+    this.face = this.vx < 0 ? -1 : 1;
+    // 壁にぶつかったら跳ね返る
+    if (TL.boxSolid(this.x, this.y, this.w, this.h)) {
+      this.x -= this.vx; this.y -= this.vy;
+      this.vx *= -0.5; this.vy *= -0.5;
+    }
+  };
+  Drone.prototype.draw = function (camX, camY) {
+    this.blit(G.sprites.enemy.drone[Math.floor(this.age / 3) % 2], camX, camY);
+  };
+
   /* ======================================================================
      生成のための表
      ====================================================================== */
   var TYPES = {
     met: Met, fly: Flyer, turret: Turret, hop: Hopper, spike: Spiker, plat: Platform,
     joe: ShieldJoe, bat: Bat, crawl: Crawler, tank: Tank,
-    split: Splitter, riser: Riser, vent: Vent, crusher: Crusher
+    split: Splitter, riser: Riser, vent: Vent, crusher: Crusher, drone: Drone
   };
 
   function create(type, x, y, opt) {
@@ -5965,7 +6081,7 @@ G.enemies = (function () {
     Enemy: Enemy, extend: extend, create: create, TYPES: TYPES,
     Met: Met, Flyer: Flyer, Turret: Turret, Hopper: Hopper, Spiker: Spiker, Platform: Platform,
     ShieldJoe: ShieldJoe, Bat: Bat, Crawler: Crawler, Tank: Tank,
-    Splitter: Splitter, Riser: Riser, Vent: Vent, Crusher: Crusher
+    Splitter: Splitter, Riser: Riser, Vent: Vent, Crusher: Crusher, Drone: Drone
   };
 })();
 
@@ -6160,22 +6276,24 @@ G.bosses = (function () {
     this.dyingT = 0;
     this.vx = 0;
     A.sfx.explode();
-    G.fx.slowmo(0.35, 44);        // 少しスローに
+    G.fx.slowmo(this.isMidBoss ? 0.5 : 0.35, this.isMidBoss ? 20 : 44);
     G.fx.shake(3, 30);
-    if (st) st.onBossDying();
+    if (st) { if (this.isMidBoss) st.onMidBossDying(); else st.onBossDying(); }
   };
 
   B.updateDying = function (st) {
     this.dyingT++;
     var t = this.dyingT;
+    // 中ボスは演出を短めにして、すぐ探索に戻れるようにする
+    var BLOW = this.isMidBoss ? 56 : 108;
     // ゆっくり点滅しながら小爆発を繰り返す
-    if (t < 100 && t % 7 === 0) {
+    if (t < BLOW - 8 && t % 7 === 0) {
       var a = U.rnd() * Math.PI * 2, r = U.rnd() * 18;
       G.fx.explode(this.cx() + Math.cos(a) * r, this.cy() + Math.sin(a) * r, 0.7);
       A.sfx.enemyPop();
     }
     // 短い無音の後に大爆発
-    if (t === 108) {
+    if (t === BLOW) {
       G.fx.explodeBig(this.cx(), this.cy());
       G.fx.explodeBig(this.cx() - 8, this.cy() + 6);
       G.fx.explodeBig(this.cx() + 8, this.cy() - 6);
@@ -6185,7 +6303,7 @@ G.bosses = (function () {
       G.fx.slowmo(0.25, 30);
       this.dead = true;
       this.defeated = true;
-      if (st) st.onBossDefeated();
+      if (st) { if (this.isMidBoss) st.onMidBossDefeated(); else st.onBossDefeated(); }
     }
   };
 
@@ -6315,8 +6433,9 @@ G.bosses = (function () {
     if (this.state === 'dying') {
       // 撃破中：だんだん速く点滅し、最後は消える
       var t = this.dyingT;
-      var speed = t < 40 ? 8 : (t < 80 ? 5 : 3);
-      if (t > 100) return;
+      var lim = this.isMidBoss ? 56 : 108;
+      var speed = t < lim * 0.37 ? 8 : (t < lim * 0.74 ? 5 : 3);
+      if (t > lim - 8) return;
       if (Math.floor(t / speed) % 2 === 0) {
         this.drawBody(camX, camY, '#FCFCFC');
         return;
@@ -7053,29 +7172,279 @@ G.bosses = (function () {
   });
 
 
+
   /* ======================================================================
-     ラスボス：オメガコア
+     中ボス：ジャイアントホーネット（巨大な蜂のロボット）
 
-     ・HP 42、3つの形態を持つ（14ずつ）
-     ・形態ごとに弱点が変わる（ハイパーボム → サンダービーム → ローリングカッター）
-       正解の武器なら3発、他の特殊武器でも5発で形態を突破できる
-     ・バスターはほとんど効かない（溜めても2）＝溜めた武器を使い切る戦い
-     ・形態が変わるたびに無敵になり、色と技が総入れ替わりになる
+     ・各ステージの中間地点に待ち構えている。倒すと先へ進める
+     ・地面に降りず、常に飛んでいる
+     ・技は3つ： 急降下突き / 小型蜂の放出 / 針の散弾
+     ・HP24。バスターでも十分倒せる硬さにしてある
+       （中間地点なので、まだ特殊武器が無い周回でも詰まらないように）
      ====================================================================== */
-  var FINAL_HP = 60;
-  var PHASE_HP = 20;
+  var GiantHornet = extend({
+    id: 'hornet', name: 'GIANT HORNET', drop: null, weakness: 'ice', entrance: 'fly',
+    col: { main:'#F8D878', dark:'#8C6000', light:'#FCE0A8', trim:'#101018', eye:'#D82800' },
+    faceCol: '#F8D878'
+  }, {
+    init: function () {
+      this.w = 40; this.h = 26;
+      this.maxHp = 24;
+      this.hp = 24;
+      this.contactDmg = 5;
+      this.isMidBoss = true;
+      this.hover = 0;
+      this.wing = 0;
+      this.baseY = 0;
+      this.tilt = 0;
+    },
 
-  /* 形態ごとの見た目・弱点・技 */
+    /* 中ボスは特殊武器が無くても倒せるよう、バスターがよく効く */
+    damageFor: function (element, src) {
+      if (element === 'buster') {
+        var lv = (src && src.level) || 0;
+        return [1, 3, 5][Math.min(2, lv)];
+      }
+      if (src && src.continuous) return 1;
+      return (element === this.weakness) ? 6 : 2;
+    },
+
+    /* --- 飛んでいるので重力も床も無い --- */
+    physics: function () {
+      this.x += this.vx;
+      this.y += this.vy;
+      var ar = this.arena;
+      if (this.x < ar.x0) { this.x = ar.x0; this.vx = Math.abs(this.vx); }
+      if (this.x + this.w > ar.x1) { this.x = ar.x1 - this.w; this.vx = -Math.abs(this.vx); }
+      var top = ar.floorY - 150;
+      if (this.y < top) { this.y = top; this.vy = Math.abs(this.vy) * 0.4; }
+      var bottom = ar.floorY - this.h - 4;
+      if (this.y > bottom) { this.y = bottom; this.vy = -Math.abs(this.vy) * 0.4; }
+      this.onGround = false;
+    },
+
+    /* --- 登場：上空から羽音とともに舞い降りる --- */
+    updateEntrance: function () {
+      this.entranceT++;
+      var t = this.entranceT;
+      if (t === 1) {
+        this.x = this.homeX - this.w / 2;
+        this.y = this.arena.floorY - 240;
+        this.baseY = this.arena.floorY - 96;
+        A.sfx.charge();
+      }
+      this.y += Math.min(t * 0.35, 4.2);
+      this.x += Math.sin(t * 0.12) * 1.4;
+      if (t % 6 === 0) A.sfx.blip();
+      if (this.y >= this.baseY) {
+        this.y = this.baseY;
+        this.state = 'pose';
+        this.actT = 0;
+        G.fx.burst(this.cx(), this.cy() + 10, 12,
+          { speed: 2, life: 18, size: 2, color: '#FCE0A8', light: true });
+        A.sfx.bossWarn();
+      }
+    },
+
+    runAct: function (st) {
+      var pl = st.player;
+      this.wing += 0.9;
+      switch (this.act) {
+        case 'wait':
+          // 上空をふわふわ漂いながら間合いを計る
+          this.facePlayer(st);
+          this.tilt = 0;
+          var tx = pl.cx() - this.w / 2 + this.face * -20;
+          this.vx = U.lerp(this.vx, U.clamp((tx - this.x) * 0.03, -1.6, 1.6), 0.08);
+          this.vy = U.lerp(this.vy, (this.baseY - this.y) * 0.04 + Math.sin(this.age * 0.07) * 0.5, 0.1);
+          if (this.actT >= (this.enraged ? 26 : 42)) {
+            this.setAct(this.pickAttack(st, ['dive', 'drones', 'needles']), 0);
+            A.sfx.blip();
+          }
+          break;
+
+        /* --- 急降下突き：真上へ上がってから斜めに突っ込む --- */
+        case 'dive':
+          if (this.actT < 22) {
+            // 予備動作：一度上がって狙いを定める
+            this.facePlayer(st);
+            this.vy = U.lerp(this.vy, -1.8, 0.2);
+            this.vx = U.lerp(this.vx, 0, 0.2);
+            this.tilt = 0;
+            if (this.actT === 20) { A.sfx.charge(); this.diveTx = pl.cx(); this.diveTy = pl.cy(); }
+          } else if (this.actT < 60) {
+            // 突進本体
+            var a = Math.atan2(this.diveTy - this.cy(), this.diveTx - this.cx());
+            var sp = this.enraged ? 6.4 : 5.2;
+            this.vx = Math.cos(a) * sp;
+            this.vy = Math.sin(a) * sp;
+            this.tilt = a;
+            if (this.age % 3 === 0) {
+              G.fx.part({ x: this.cx() - Math.cos(a) * 16, y: this.cy() - Math.sin(a) * 16,
+                vx: -Math.cos(a), vy: -Math.sin(a), life: 12, size: 3,
+                color: '#FCE0A8', color2: '#F8D878', type: 'circle', light: true });
+            }
+            // 目標に届いたら抜ける
+            if (U.dist(this.cx(), this.cy(), this.diveTx, this.diveTy) < 18) this.actT = 60;
+          } else {
+            this.tilt = U.lerp(this.tilt, 0, 0.2);
+            this.vy = U.lerp(this.vy, -2.2, 0.14);
+            this.vx = U.lerp(this.vx, 0, 0.1);
+            if (this.actT > 84) this.setAct('wait', 0);
+          }
+          break;
+
+        /* --- 小型蜂の放出：追尾してくる子機を撒く --- */
+        case 'drones':
+          this.vx = U.lerp(this.vx, 0, 0.15);
+          this.vy = U.lerp(this.vy, (this.baseY - this.y) * 0.05, 0.12);
+          if (this.actT === 1) A.sfx.charge();
+          if (this.actT === 26) {
+            var n = this.enraged ? 4 : 3;
+            for (var i = 0; i < n; i++) {
+              var d = G.enemies.create('drone', 0, 0, {});
+              d.x = this.cx() - d.w / 2 + (i - (n - 1) / 2) * 14;
+              d.y = this.y + this.h - 4;
+              d.vx = (i - (n - 1) / 2) * 0.8;
+              d.vy = 1.2;
+              st.enemies.push(d);
+            }
+            A.sfx.enemyPop();
+            G.fx.burst(this.cx(), this.y + this.h, 10,
+              { speed: 1.8, life: 16, size: 2, color: '#F8D878', light: true });
+          }
+          if (this.actT > 52) this.setAct('wait', 0);
+          break;
+
+        /* --- 針の散弾：プレイヤーの真上へ回り込んで撒き散らす --- */
+        case 'needles':
+          if (this.actT === 1) { A.sfx.bossWarn(); st.requestZoom(0.9, 90); }
+          // 真上を取る
+          var over = pl.cx() - this.w / 2;
+          this.vx = U.lerp(this.vx, U.clamp((over - this.x) * 0.06, -3.2, 3.2), 0.12);
+          this.vy = U.lerp(this.vy, (this.arena.floorY - 120 - this.y) * 0.05, 0.12);
+          this.tilt = 0;
+          if (this.actT === 34 || (this.enraged && this.actT === 58)) {
+            var m = this.enraged ? 6 : 5;
+            for (var j = 0; j < m; j++) {
+              var ang = Math.PI / 2 + (j - (m - 1) / 2) * 0.30;
+              st.shots.push(new W.EnemyShot(this.cx(), this.y + this.h - 2,
+                Math.cos(ang) * 3.6, Math.sin(ang) * 3.6,
+                { dmg: 4, size: 10, style: 'shard', color: '#FCE0A8', life: 150 }));
+            }
+            A.sfx.cutter();
+          }
+          if (this.actT > (this.enraged ? 82 : 60)) this.setAct('wait', 0);
+          break;
+      }
+    },
+
+    /* --- 見た目：縞模様の腹・羽・大きな複眼を持つ蜂 --- */
+    drawBody: function (camX, camY, override) {
+      var c = this.col;
+      if (override) c = { main: override, dark: override, light: override,
+                          trim: override, eye: override };
+      var ctx = gfx.ctx;
+      var cx = Math.round(this.cx() - camX);
+      var cy = Math.round(this.cy() - camY);
+      var f = this.face;
+      var K = override || '#101018';
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(this.tilt * (f > 0 ? 1 : -1) * 0.5);
+      ctx.scale(f > 0 ? 1 : -1, 1);
+
+      function R(x, y, w, h, col) { gfx.rect(x, y, w, h, col); }
+
+      // --- 羽（動きに合わせて上下する。半透明で重ねる） ---
+      var wf = Math.sin(this.wing) * 5;
+      ctx.save();
+      ctx.globalAlpha = 0.55;
+      R(-14, -20 + wf, 18, 8, '#BCE8FC');
+      R(-13, -19 + wf, 16, 6, '#FCFCFC');
+      R(-2, -22 - wf * 0.7, 16, 7, '#BCE8FC');
+      R(-1, -21 - wf * 0.7, 14, 5, '#FCFCFC');
+      ctx.restore();
+
+      // --- 腹（後方）：黄と黒の縞 ---
+      R(-21, -7, 20, 15, K);
+      R(-20, -6, 18, 13, c.main);
+      for (var i = 0; i < 3; i++) R(-18 + i * 6, -6, 3, 13, override || '#101018');
+      R(-20, -6, 18, 2, c.light);
+      // 針
+      R(-26, -1, 6, 3, K);
+      R(-25, -1, 5, 2, override || '#FCFCFC');
+
+      // --- 胸部 ---
+      R(-4, -10, 15, 20, K);
+      R(-3, -9, 13, 18, c.main);
+      R(-3, -9, 13, 3, c.light);
+      R(-3, 5, 13, 3, c.dark);
+
+      // --- 脚 ---
+      for (var L = 0; L < 3; L++) {
+        R(-2 + L * 5, 9, 2, 6, K);
+        R(-3 + L * 5, 14, 4, 2, K);
+      }
+
+      // --- 頭と複眼 ---
+      R(9, -11, 13, 17, K);
+      R(10, -10, 11, 15, c.dark);
+      R(13, -7, 8, 9, c.eye);
+      R(15, -5, 4, 4, override || '#FCFCFC');
+      // 触角
+      R(12, -16, 2, 6, K);
+      R(17, -17, 2, 7, K);
+      R(11, -18, 3, 3, c.light);
+      R(17, -19, 3, 3, c.light);
+      // 顎
+      R(21, 1, 4, 2, K);
+      R(21, 4, 3, 2, K);
+
+      ctx.restore();
+
+      // 羽音の残像
+      if (!override && this.age % 4 === 0) {
+        G.fx.part({ x: this.cx() + U.rndRange(-18, 18), y: this.cy() - 16,
+          vx: U.rndRange(-0.3, 0.3), vy: U.rndRange(0.2, 0.7),
+          life: 10, size: 1, color: '#FCE0A8' });
+      }
+    }
+  });
+
+  /* ======================================================================
+     ラスボス：オメガコア → シャドウガンマン
+
+     4つの形態を持つ。
+
+       形態1〜3 … 巨大機械。形態ごとに弱点と技が総入れ替わりになる
+       形態4    … 機械が砕けて現れる本体。主人公の姿をした「影」。
+                  真っ黒な色違いで、プレイヤーが使える武器を全部使ってくる
+
+     形態4の弾は、プレイヤー用の弾クラスをそのまま生成して team だけ
+     'enemy' に付け替えている。だから見た目も挙動も本物と同じものが飛んでくる。
+     ====================================================================== */
+  var FINAL_HP = 76;
+  var THRESH = [60, 44, 28, 0];   // 各形態を抜けるHP
+
   var PHASES = [
-    { weakness: 'bomb',
-      col: { main:'#6844FC', dark:'#2C1C8C', light:'#A088FC', trim:'#00E8D8', eye:'#F8D878' },
-      acts: ['sparks', 'blades', 'sweep'] },
-    { weakness: 'thunder',
-      col: { main:'#D82800', dark:'#8C1400', light:'#FC9838', trim:'#FCE0A8', eye:'#BCE8FC' },
-      acts: ['flame', 'walls', 'meteor'] },
-    { weakness: 'cutter',
-      col: { main:'#00A800', dark:'#004C18', light:'#B8F818', trim:'#FCFCFC', eye:'#F878F8' },
-      acts: ['bombs', 'quake', 'barrage'] }
+    { name: 'OMEGA CORE', weakness: 'bomb', shadow: false,
+      acts: ['sparks', 'blades', 'sweep'],
+      col: { main:'#6844FC', dark:'#2C1C8C', light:'#A088FC', trim:'#00E8D8', eye:'#F8D878' } },
+    { name: 'OMEGA CORE', weakness: 'thunder', shadow: false,
+      acts: ['flame', 'walls', 'meteor'],
+      col: { main:'#D82800', dark:'#8C1400', light:'#FC9838', trim:'#FCE0A8', eye:'#BCE8FC' } },
+    { name: 'OMEGA CORE', weakness: 'cutter', shadow: false,
+      acts: ['bombs', 'quake', 'barrage'],
+      col: { main:'#00A800', dark:'#004C18', light:'#B8F818', trim:'#FCFCFC', eye:'#F878F8' } },
+    /* --- 最終形態：主人公の影 --- */
+    { name: 'SHADOW GANMAN', weakness: null, shadow: true,
+      acts: ['sBuster', 'sThunder', 'sFire', 'sIce', 'sBomb', 'sCutter', 'sArm', 'sJump'],
+      col: { main:'#2C2C3C', dark:'#08080C', light:'#6C6C80', trim:'#F83800', eye:'#F83800' },
+      // プレイヤーのドット絵に流し込む「影」のパレット
+      pal: { K:'#000004', B:'#1C1C28', L:'#48485C', S:'#6C6C80',
+             W:'#9C9CB0', C:'#F83800', D:'#101018' } }
   ];
 
   var OmegaCore = extend({
@@ -7083,36 +7452,42 @@ G.bosses = (function () {
     col: PHASES[0].col, faceCol: '#6844FC'
   }, {
     init: function () {
-      this.w = 34; this.h = 40;
+      this.w = 30; this.h = 40;
       this.maxHp = FINAL_HP;
       this.hp = FINAL_HP;
-      this.contactDmg = 7;
+      this.contactDmg = 6;
       this.phase = 0;
       this.weakness = PHASES[0].weakness;
       this.col = PHASES[0].col;
-      this.transition = 0;      // 形態変化中のカウンタ
+      this.transition = 0;
       this.hover = 0;
+      this.charging = 0;
+      this.noEnrageBlink = true;
     },
 
-    /* --- ラスボス専用のダメージ表 ---
-       弱点なら6、他の特殊武器でも3。バスターは効きが悪い。      */
+    isShadow: function () { return PHASES[this.phase].shadow; },
+
+    /* --- ダメージ表 ---
+       機械形態は「弱点6 / 他の特殊武器3 / バスターは効きが悪い」。
+       影の形態には弱点が無く、どの武器でも等しく通る＝手持ちを総動員する。 */
     damageFor: function (element, src) {
-      if (element === 'buster') {
-        var lv = (src && src.level) || 0;
-        return lv >= 2 ? 2 : 1;
+      var lv = (src && src.level) || 0;
+      if (this.isShadow()) {
+        if (element === 'buster') return [1, 2, 3][Math.min(2, lv)];
+        return (src && src.continuous) ? 1 : 3;
       }
+      if (element === 'buster') return lv >= 2 ? 2 : 1;
       if (src && src.continuous) return 1;
       return (element === this.weakness) ? 6 : 3;
     },
 
-    /* 形態が変わるまでは HP がその形態の下限で止まる */
+    /* 形態の境界で HP を止め、変化の演出に入る */
     damage: function (n, element, st, src) {
       if (this.transition > 0) return false;
-      var before = this.hp;
       var did = B.damage.call(this, n, element, st, src);
       if (!did) return false;
-      var floorHp = (2 - this.phase) * PHASE_HP;
-      if (this.hp <= floorHp && this.phase < 2) {
+      var floorHp = THRESH[this.phase];
+      if (this.hp <= floorHp && this.phase < PHASES.length - 1) {
         this.hp = floorHp;
         this.startTransition(st);
       }
@@ -7121,28 +7496,48 @@ G.bosses = (function () {
 
     startTransition: function (st) {
       this.phase++;
-      this.transition = 96;
+      var ph = PHASES[this.phase];
+      this.transition = ph.shadow ? 150 : 96;   // 最終形態の登場は長めに見せる
       this.act = 'wait'; this.actT = 0;
       this.vx = 0;
-      var ph = PHASES[this.phase];
       this.weakness = ph.weakness;
       this.col = ph.col;
+      this.name = ph.name;
+
       A.sfx.bossWarn();
       A.sfx.explodeBig();
-      G.fx.flash(ph.light || '#FCFCFC', 12, 0.8);
-      G.fx.shake(6, 34);
-      G.fx.slowmo(0.4, 26);
+      G.fx.shake(ph.shadow ? 9 : 6, ph.shadow ? 48 : 34);
+      G.fx.slowmo(ph.shadow ? 0.3 : 0.4, ph.shadow ? 40 : 26);
       G.fx.explodeBig(this.cx(), this.cy());
       G.fx.ring(this.cx(), this.cy(), 6, 90, 30, ph.col.light);
-      if (st) st.requestZoom(0.88, 110);
+
+      if (ph.shadow) {
+        // 機械が砕けて、中から影が現れる
+        G.fx.flash('#FCFCFC', 20, 1);
+        G.fx.debris(this.cx(), this.cy(), 22, ['#6844FC', '#D82800', '#00A800', '#BCBCBC']);
+        A.sfx.death();
+        if (st) {
+          st.requestZoom(1.1, 170);
+          st.showBigMessage(ph.name, '#F83800', 150);
+        }
+      } else {
+        G.fx.flash(ph.col.light, 12, 0.8);
+        if (st) st.requestZoom(0.88, 110);
+      }
     },
 
-    /* 強化モードは使わない（形態そのものが難度の段階になっている）。
-       enraged は立てたままにして、毎ヒット呼ばれないようにする。 */
     onEnrage: function () { this.noEnrageBlink = true; },
 
+    /* 影の形態はプレイヤーの弾をそのまま流用する（team だけ敵に付け替える） */
+    shadowShot: function (st, shot, dmg) {
+      shot.team = 'enemy';
+      if (dmg !== undefined) shot.dmg = dmg;
+      st.shots.push(shot);
+      return shot;
+    },
+
     runAct: function (st) {
-      // --- 形態変化の演出中は無敵で浮いている ---
+      /* --- 形態変化の演出中 --- */
       if (this.transition > 0) {
         this.transition--;
         this.vx = 0;
@@ -7152,27 +7547,36 @@ G.bosses = (function () {
           G.fx.explode(this.cx() + Math.cos(a) * r, this.cy() + Math.sin(a) * r, 0.6,
             [this.col.light, this.col.main, '#FCFCFC']);
         }
-        if (this.transition === 0) { this.setAct('wait', 0); }
+        if (this.transition === 0) this.setAct('wait', 0);
         return;
       }
 
+      var pl = st.player;
       var acts = PHASES[this.phase].acts;
+      var shadow = this.isShadow();
+
       switch (this.act) {
         case 'wait':
           this.facePlayer(st);
-          // 形態が進むほど間合いを詰める間隔が短くなる
-          var dur = [40, 32, 24][this.phase];
-          this.vx = Math.sin(this.age * 0.05) * (0.7 + this.phase * 0.4) * this.face;
-          if (this.actT >= dur) { this.setAct(this.pickAttack(st, acts), 0); A.sfx.blip(); }
+          if (shadow) {
+            // 影は主人公と同じように走って間合いを取る
+            var want = pl.cx() + (this.cx() < pl.cx() ? -70 : 70);
+            this.vx = U.clamp((want - this.cx()) * 0.05, -2.0, 2.0);
+            if (this.actT >= 22) { this.setAct(this.pickAttack(st, acts), 0); }
+          } else {
+            var dur = [40, 32, 24][this.phase];
+            this.vx = Math.sin(this.age * 0.05) * (0.7 + this.phase * 0.4) * this.face;
+            if (this.actT >= dur) { this.setAct(this.pickAttack(st, acts), 0); A.sfx.blip(); }
+          }
           break;
 
-        /* ---------------- 形態1：電撃と刃 ---------------- */
+        /* ================= 形態1：電撃と刃 ================= */
         case 'sparks':
           this.vx = 0; this.pose.armR = -6;
           if (this.actT === 1) A.sfx.charge();
           if (this.actT === 26) {
             for (var i = -2; i <= 2; i++) {
-              var a2 = Math.atan2(st.player.cy() - this.cy(), st.player.cx() - this.cx()) + i * 0.22;
+              var a2 = Math.atan2(pl.cy() - this.cy(), pl.cx() - this.cx()) + i * 0.22;
               st.shots.push(new W.EnemyShot(this.cx(), this.cy(),
                 Math.cos(a2) * 4.4, Math.sin(a2) * 4.4,
                 { dmg: 5, size: 11, style: 'spark', color: '#A088FC', color2: '#FCFCFC' }));
@@ -7191,9 +7595,10 @@ G.bosses = (function () {
               var ba = -0.8 + bi * 0.45;
               st.shots.push(new W.EnemyShot(this.cx() + this.face * 14, this.cy() - 4,
                 Math.cos(ba) * 4.0 * this.face, Math.sin(ba) * 4.0,
-                { dmg: 5, size: 15, style: 'blade', color: '#BCBCBC', life: 170, hitsWall: false, grav: 0.04 }));
+                { dmg: 5, size: 15, style: 'blade', color: '#BCBCBC', life: 170,
+                  hitsWall: false, grav: 0.04 }));
               A.sfx.cutter();
-            } else { this.setAct('wait', 0); }
+            } else this.setAct('wait', 0);
           }
           break;
 
@@ -7222,7 +7627,7 @@ G.bosses = (function () {
           if (this.actT > 92) { this.pose.armL = this.pose.armR = 0; this.setAct('wait', 0); }
           break;
 
-        /* ---------------- 形態2：炎と氷 ---------------- */
+        /* ================= 形態2：炎と氷 ================= */
         case 'flame':
           this.vx = 0;
           if (this.actT < 16) this.facePlayer(st);
@@ -7276,16 +7681,16 @@ G.bosses = (function () {
           }
           break;
 
-        /* ---------------- 形態3：爆撃と震動 ---------------- */
+        /* ================= 形態3：爆撃と震動 ================= */
         case 'bombs':
           this.vx = 0;
           if (this.actT === 1) A.sfx.charge();
           if (this.actT >= 18 && (this.actT - 18) % 13 === 0) {
             var bj = (this.actT - 18) / 13;
             if (bj < 5) {
-              var dx = st.player.cx() - this.cx();
+              var dxx = pl.cx() - this.cx();
               st.shots.push(new W.EnemyShot(this.cx(), this.cy() - 8,
-                U.clamp(dx / 40, -3.4, 3.4) + U.rndRange(-0.5, 0.5), -4.6,
+                U.clamp(dxx / 40, -3.4, 3.4) + U.rndRange(-0.5, 0.5), -4.6,
                 { dmg: 6, size: 13, style: 'ball', color: '#00A800', color2: '#B8F818',
                   grav: 0.22, life: 160 }));
               A.sfx.bombThrow();
@@ -7311,9 +7716,9 @@ G.bosses = (function () {
                   var k = 1 - h.age / h.life;
                   var ctx = gfx.ctx;
                   ctx.save(); ctx.globalAlpha = Math.min(1, k * 2);
-                  for (var i = 0; i < 3; i++) {
-                    gfx.rect(x0 - 10 + i * 7, y0 + 4 + (i % 2) * 4, 6, 16 - (i % 2) * 4, '#004C18');
-                    gfx.rect(x0 - 10 + i * 7, y0 + 4 + (i % 2) * 4, 6, 3, '#B8F818');
+                  for (var i2 = 0; i2 < 3; i2++) {
+                    gfx.rect(x0 - 10 + i2 * 7, y0 + 4 + (i2 % 2) * 4, 6, 16 - (i2 % 2) * 4, '#004C18');
+                    gfx.rect(x0 - 10 + i2 * 7, y0 + 4 + (i2 % 2) * 4, 6, 3, '#B8F818');
                   }
                   ctx.restore();
                 }
@@ -7341,6 +7746,113 @@ G.bosses = (function () {
           }
           break;
 
+        /* ================= 形態4：影 —— プレイヤーの武器を全部使う ================= */
+        case 'sBuster':
+          this.vx = 0;
+          this.facePlayer(st);
+          if (this.actT === 1) A.sfx.chargeTick();
+          if (this.actT < 34) {
+            this.charging = 1;
+            if (this.actT % 3 === 0) {
+              var ca = U.rnd() * Math.PI * 2, cr = 20 + U.rnd() * 8;
+              G.fx.part({ x: this.cx() + Math.cos(ca) * cr, y: this.cy() + Math.sin(ca) * cr,
+                vx: -Math.cos(ca) * 1.6, vy: -Math.sin(ca) * 1.6,
+                life: 12, size: 3, color: '#F83800', color2: '#8C1400',
+                type: 'circle', light: true });
+            }
+          }
+          if (this.actT === 34) {
+            this.charging = 0;
+            this.shadowShot(st, new W.Buster(this.cx() + this.face * 18, this.cy() - 2, this.face, 2), 6);
+            A.sfx.shotBig();
+            G.fx.shake(2, 8);
+          }
+          if (this.actT > 58) this.setAct('wait', 0);
+          break;
+
+        case 'sThunder':
+          this.vx = 0;
+          this.facePlayer(st);
+          if (this.actT === 22) {
+            var px = this.cx() + this.face * 16, py = this.cy() - 2;
+            this.shadowShot(st, new W.Thunder(px, py, this.face, 0), 5);
+            this.shadowShot(st, new W.Thunder(px, py, this.face, -1), 5);
+            this.shadowShot(st, new W.Thunder(px, py, this.face, 1), 5);
+            A.sfx.thunder();
+            G.fx.flash('#F8D878', 3, 0.2);
+          }
+          if (this.actT > 52) this.setAct('wait', 0);
+          break;
+
+        case 'sFire':
+          this.vx = 0;
+          this.facePlayer(st);
+          if (this.actT === 20) {
+            this.shadowShot(st, new W.Fire(this.cx() + this.face * 16, this.cy(), this.face), 5);
+            this.shadowShot(st, new W.FireShield(this), 4);
+            A.sfx.fire();
+          }
+          if (this.actT > 48) this.setAct('wait', 0);
+          break;
+
+        case 'sIce':
+          this.vx = 0;
+          this.facePlayer(st);
+          if (this.actT === 16 || this.actT === 30) {
+            this.shadowShot(st, new W.Ice(this.cx() + this.face * 16, this.cy() - 2, this.face), 4);
+            A.sfx.ice();
+          }
+          if (this.actT > 50) this.setAct('wait', 0);
+          break;
+
+        case 'sBomb':
+          this.vx = 0;
+          if (this.actT < 14) this.facePlayer(st);
+          if (this.actT === 18 || this.actT === 38) {
+            this.shadowShot(st, new W.Bomb(this.cx() + this.face * 12, this.cy() - 6, this.face), 0);
+            A.sfx.bombThrow();
+          }
+          if (this.actT > 62) this.setAct('wait', 0);
+          break;
+
+        case 'sCutter':
+          this.vx = 0;
+          this.facePlayer(st);
+          if (this.actT === 18) {
+            this.shadowShot(st, new W.Cutter(this.cx() + this.face * 14, this.cy() - 4, this.face, this), 5);
+            A.sfx.cutter();
+          }
+          if (this.actT > 62) this.setAct('wait', 0);
+          break;
+
+        case 'sArm':
+          this.vx = 0;
+          if (this.actT < 16) this.facePlayer(st);
+          this.pose.crouch = this.actT < 20 ? 5 : 0;
+          if (this.actT === 24) {
+            this.shadowShot(st, new W.Rock(this.cx() + this.face * 16, this.cy() - 4, this.face), 6);
+            A.sfx.rockThrow();
+            G.fx.shake(2, 8);
+          }
+          if (this.actT > 52) { this.pose.crouch = 0; this.setAct('wait', 0); }
+          break;
+
+        /* 影は主人公と同じように跳んで距離を詰める */
+        case 'sJump':
+          if (this.actT === 1) {
+            this.facePlayer(st);
+            this.vy = -6.2;
+            this.vx = this.face * 2.4;
+            A.sfx.jump();
+          }
+          if (this.actT > 10 && this.onGround) {
+            A.sfx.land();
+            G.fx.dust(this.cx(), this.feetY(), 0);
+            this.setAct('wait', 0);
+          }
+          if (this.actT > 120) this.setAct('wait', 0);
+          break;
+
         case 'recover':
           this.vx = 0;
           this.pose.crouch = Math.max(0, 6 - this.actT);
@@ -7349,8 +7861,69 @@ G.bosses = (function () {
       }
     },
 
-    /* --- 見た目：ロボットではなく巨大な機械として描く --- */
+    /* ======================================================================
+       描画：形態1〜3は巨大機械、形態4は主人公の色違い（影）
+       ====================================================================== */
     drawBody: function (camX, camY, override) {
+      if (this.isShadow()) this.drawShadow(camX, camY, override);
+      else this.drawMachine(camX, camY, override);
+    },
+
+    /* --- 形態4：プレイヤーと同じドット絵を、影のパレットで2倍に描く --- */
+    drawShadow: function (camX, camY, override) {
+      var ph = PHASES[this.phase];
+      var set = G.sprites.playerSet('shadow', ph.pal);
+      var ctx = gfx.ctx;
+      var SC = 2;                        // 整数倍なのでドットが崩れない
+
+      var box;
+      if (!this.onGround) box = set.jump;
+      else if (Math.abs(this.vx) > 0.25) box = set.run[Math.floor(this.age / 7) % 3];
+      else box = set.idle;
+      if (this.pose.crouch > 3) box = set.hurt;
+
+      var dx = Math.round(this.cx() - camX - (box.w * SC) / 2);
+      var dy = Math.round(this.feetY() - camY - box.h * SC);
+
+      // 足元に落ちる濃い影＋赤いオーラ
+      if (!override) {
+        ctx.save();
+        ctx.globalAlpha = 0.45;
+        gfx.circle(this.cx() - camX, this.feetY() - camY - 2, 18, '#08080C');
+        ctx.restore();
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = (this.charging ? 0.5 : 0.18) + 0.1 * Math.sin(this.age * 0.12);
+        gfx.circle(this.cx() - camX, this.cy() - camY, this.charging ? 30 : 24, '#8C1400');
+        ctx.restore();
+      }
+
+      ctx.save();
+      ctx.imageSmoothingEnabled = false;
+      // 溜め中は白く光る（プレイヤーのチャージと同じ見せ方）
+      if (this.charging && (this.age % 6 < 3) && !override) {
+        ctx.globalAlpha = 0.8;
+        ctx.drawImage(box.sil('#F83800', this.face), dx, dy, box.w * SC, box.h * SC);
+        ctx.globalAlpha = 1;
+      }
+      ctx.drawImage(override ? box.sil(override, this.face) : box.get(this.face),
+                    dx, dy, box.w * SC, box.h * SC);
+
+      // 撃つ技の最中はバスターの腕を重ねる（部品もプレイヤーと同じ）
+      var armOut = (this.act !== 'wait' && this.act !== 'recover' &&
+                    this.act !== 'sJump' && this.actT > 10);
+      if (armOut) {
+        var bu = set.buster;
+        var bx = Math.round(this.cx() - camX + (this.face > 0 ? 4 * SC : -4 * SC - bu.w * SC));
+        var by = Math.round(dy + 9 * SC);
+        ctx.drawImage(override ? bu.sil(override, this.face) : bu.get(this.face),
+                      bx, by, bu.w * SC, bu.h * SC);
+      }
+      ctx.restore();
+    },
+
+    /* --- 形態1〜3：履帯と砲塔とドームを持つ巨大機械 --- */
+    drawMachine: function (camX, camY, override) {
       var c = this.col;
       if (override) c = { main: override, dark: override, light: override,
                           trim: override, eye: override };
@@ -7371,28 +7944,22 @@ G.bosses = (function () {
       this.hover = (this.hover + 0.06) % (Math.PI * 2);
       var bob = Math.round(Math.sin(this.hover) * 1.5);
 
-      // 履帯
-      Blk(-18, -9, 36, 9, c.dark, c.light, null);
+      Blk(-18, -9, 36, 9, c.dark, c.light, null);              // 履帯
       for (var i = 0; i < 7; i++) R(-16 + i * 5, -7, 3, 5, K);
-      // 本体
-      Blk(-16, -30 + bob, 32, 22, c.main, c.light, c.dark);
+      Blk(-16, -30 + bob, 32, 22, c.main, c.light, c.dark);    // 本体
       R(-11, -25 + bob, 22, 8, c.dark);
       R(-9, -23 + bob, 18, 4, c.trim);
-      // 左右の砲塔
-      Blk(-22, -27 + bob, 7, 12, c.light, null, c.dark);
+      Blk(-22, -27 + bob, 7, 12, c.light, null, c.dark);       // 砲塔
       Blk(15, -27 + bob, 7, 12, c.light, null, c.dark);
       R(20, -24 + bob, 4, 5, K);
-      // ドーム（中に目）
-      Blk(-11, -42 + bob, 22, 13, c.main, c.light, c.dark);
+      Blk(-11, -42 + bob, 22, 13, c.main, c.light, c.dark);    // ドーム
       R(-8, -39 + bob, 16, 8, K);
       var blink = (this.transition > 0) && (this.age % 6 < 3);
       R(-6, -37 + bob, 5, 5, blink ? '#FCFCFC' : c.eye);
       R(1, -37 + bob, 5, 5, blink ? '#FCFCFC' : c.eye);
-      // 形態を示すランプ（残り形態ぶん光る）
-      for (var p = 0; p < 3; p++) {
-        R(-9 + p * 8, -45 + bob, 5, 3, p <= this.phase ? c.trim : '#2C2C3C');
+      for (var p = 0; p < 4; p++) {                            // 形態ランプ
+        R(-13 + p * 7, -45 + bob, 5, 3, p <= this.phase ? c.trim : '#2C2C3C');
       }
-      // 排熱の光
       if (!override) {
         ctx.save(); ctx.globalCompositeOperation = 'lighter';
         ctx.globalAlpha = 0.5 + 0.3 * Math.sin(this.age * 0.15);
@@ -7417,6 +7984,7 @@ G.bosses = (function () {
   LIST.forEach(function (b) { BY_KEY[b.key] = b; b.def = b.Ctor.def; });
   // ラスボスは create() から作れるようにするが、セレクト画面の一覧には入れない
   BY_KEY.final = { key: 'final', Ctor: OmegaCore, def: OmegaCore.def };
+  BY_KEY.hornet = { key: 'hornet', Ctor: GiantHornet, def: GiantHornet.def };
 
   function create(key, x, y) {
     var e = BY_KEY[key];
@@ -7482,7 +8050,8 @@ G.bosses = (function () {
     Hazard: Hazard, MAX_HP: MAX_HP,
     ElecMan: ElecMan, FireMan: FireMan, IceMan: IceMan,
     BombMan: BombMan, CutMan: CutMan, GutsMan: GutsMan,
-    OmegaCore: OmegaCore, FINAL_HP: FINAL_HP, PHASES: PHASES
+    OmegaCore: OmegaCore, FINAL_HP: FINAL_HP, PHASES: PHASES,
+    GiantHornet: GiantHornet
   };
 })();
 
@@ -8210,6 +8779,9 @@ G.scenes.stage = (function () {
       t: 0,
 
       checkpoint: null,       // 中間ポイントを通過したら入る
+      midBoss: null,          // 中ボス（戦闘中だけ入る）
+      midBossDone: false,
+      lockArena: null,        // カメラを固定する部屋（中ボス戦で使う）
       tanks: G.game.tanks || 0,
       deathT: 0,
       clearT: 0,
@@ -8217,7 +8789,8 @@ G.scenes.stage = (function () {
       pausedFrom: 'play',
       doorOpen: 0,
       bossNameT: 0,
-      silence: 0             // 撃破後の「短い無音」用
+      silence: 0,            // 撃破後の「短い無音」用
+      bigMsg: null           // 画面中央に大きく出すメッセージ
     };
 
     // プレイヤーに引き継ぎデータを反映
@@ -8264,6 +8837,37 @@ G.scenes.stage = (function () {
     st.requestZoom = function (z, frames) {
       st.zoomTarget = z; st.zoomTimer = frames;
     };
+    /* 画面中央に大きく文字を出す（ラスボスの形態変化などで使う） */
+    st.showBigMessage = function (text, color, frames) {
+      st.bigMsg = { text: text, color: color || '#FCFCFC', t: 0, max: frames || 120 };
+    };
+
+    /* --- 中ボス --- */
+    st.onMidBossDying = function () {
+      // 撃破演出中に残り弾で死なないよう、敵の攻撃を消す
+      for (var i = 0; i < st.shots.length; i++) {
+        if (st.shots[i].team === 'enemy') st.shots[i].dead = true;
+      }
+      for (var j = 0; j < st.hazards.length; j++) st.hazards[j].dead = true;
+      st.player.invul = 99999;
+      G.music.fadeOut(0.3);
+    };
+    st.onMidBossDefeated = function () {
+      st.midBossDone = true;
+      st.midBoss = null;
+      st.lockArena = null;
+      st.phase = 'play';
+      st.player.invul = 60;
+      st.player.controlEnabled = true;
+      // ごほうび（回復と武器エネルギー）
+      var mb = st.data.midBoss;
+      var cx = (mb.arena.x0 + mb.arena.x1) / 2;
+      st.items.push(new G.items.Item('hpBig', cx - 14, mb.arena.floorY - 20, { permanent: true }));
+      st.items.push(new G.items.Item('wpBig', cx + 14, mb.arena.floorY - 20, { permanent: true }));
+      G.fx.floatText('CLEAR!', cx, mb.arena.floorY - 60, '#F8D878', 2);
+      G.music.play(st.theme.bgm, { restart: true });
+    };
+
     st.onBossDying = function () {
       st.phase = 'dying'; st.phaseT = 0;
       // 撃破演出中に残り弾で死ぬのは理不尽なので、敵の攻撃を全部消して無敵にする
@@ -8291,8 +8895,9 @@ G.scenes.stage = (function () {
 
     var tx, ty;
 
-    if (st.phase === 'door' || st.phase === 'bossin' || st.phase === 'boss' ||
-        st.phase === 'dying' || st.phase === 'clear') {
+    var bossPhase = (st.phase === 'door' || st.phase === 'bossin' || st.phase === 'boss' ||
+                     st.phase === 'dying' || st.phase === 'clear');
+    if (bossPhase || st.lockArena) {
       /* --- ボス部屋のカメラ ---
          アリーナ幅(432px)は画面幅(端末により256〜400px)より広いので、
          中央固定にするとプレイヤーが端に行ったとき画面外に消えてしまう。
@@ -8302,9 +8907,11 @@ G.scenes.stage = (function () {
            ③ アリーナから大きく外れない（壁を少し見せる程度の余裕は持つ）
          縦は固定のまま。床を画面の64%の高さに置くことで、
          戦闘が仮想パッドより上で行われ、指でキャラが隠れない。        */
-      var ar = st.data.boss.arena;
+      var ar = bossPhase ? st.data.boss.arena : st.lockArena;
+      var foe = (st.boss && !st.boss.dead) ? st.boss
+              : ((st.midBoss && !st.midBoss.dead) ? st.midBoss : null);
       var pcx = pl.cx();
-      var bcx = (st.boss && !st.boss.dead) ? st.boss.cx() : pcx;
+      var bcx = foe ? foe.cx() : pcx;
 
       // ① 自機寄りの中間点を見る（ボスもなるべく画面に残す）
       tx = (pcx + (bcx - pcx) * 0.35) - viewW / 2;
@@ -8542,12 +9149,58 @@ G.scenes.stage = (function () {
       G.fx.ring(cp.x, cp.y - 40, 3, 34, 18, '#F8D878');
     }
 
+    // 中ボスの部屋に踏み込んだら戦闘開始
+    var mb = st.data.midBoss;
+    if (mb && !st.midBossDone && !st.midBoss && pl.cx() > mb.triggerX) {
+      startMidBoss();
+      return;
+    }
+
     // ボス部屋の手前まで来たら扉のシーケンスへ
     if (pl.cx() > st.data.boss.triggerX && pl.onGround) {
       st.phase = 'door'; st.phaseT = 0;
       pl.controlEnabled = false;
       pl.cancelCharge();
       A.sfx.doorOpen();
+    }
+  }
+
+  /* --- 中ボス戦の開始 --- */
+  function startMidBoss() {
+    var mb = st.data.midBoss;
+    st.phase = 'midboss';
+    st.phaseT = 0;
+    st.lockArena = mb.arena;
+    var b = BS.create('hornet', mb.spawnX, mb.spawnY);
+    // 部屋の端に張り付かないよう、内側に寄せた範囲で動かす
+    b.arena = { x0: mb.arena.x0 + 18, x1: mb.arena.x1 - 18, floorY: mb.arena.floorY };
+    st.midBoss = b;
+    st.player.cancelCharge();
+    G.music.fadeOut(0.25);
+    A.sfx.bossWarn();
+    G.fx.flash('#F8D878', 6, 0.35);
+    G.fx.shake(2, 12);
+  }
+
+  /* --- 中ボス戦 --- */
+  function updateMidBoss() {
+    var pl = st.player;
+    st.phaseT++;
+    pl.prevY = pl.y;
+    pl.update(st);
+
+    // 部屋の外へは出られない
+    var ar = st.data.midBoss.arena;
+    if (pl.x < ar.x0 + 2) { pl.x = ar.x0 + 2; if (pl.vx < 0) pl.vx = 0; }
+    if (pl.x + pl.w > ar.x1 - 2) { pl.x = ar.x1 - 2 - pl.w; if (pl.vx > 0) pl.vx = 0; }
+
+    var b = st.midBoss;
+    if (!b) return;
+    b.update(st);
+    // 登場ポーズが終わったら戦闘開始（ボスより短め）
+    if (b.state === 'pose' && b.actT > 44 && !b.active) {
+      b.active = true;
+      G.music.play('boss');
     }
   }
 
@@ -8743,6 +9396,10 @@ G.scenes.stage = (function () {
     st.spawners.forEach(function (s) { s.entity = null; s.armed = true; });
     st.items = st.items.filter(function (i) { return i.permanent && !i.dead; });
 
+    // 中ボス戦中に死んだら、部屋の手前から再挑戦
+    st.midBoss = null;
+    st.lockArena = null;
+
     // ボス戦中に死んだらボスも作り直し
     if (st.boss) {
       st.boss = null;
@@ -8877,7 +9534,7 @@ G.scenes.stage = (function () {
     /* --- ポーズの開閉 --- */
     if (st.phase === 'pause') { updatePause(); return; }
     if (inp.pressed.pause &&
-        (st.phase === 'play' || st.phase === 'boss')) { openPause(); return; }
+        (st.phase === 'play' || st.phase === 'boss' || st.phase === 'midboss')) { openPause(); return; }
 
     /* --- ズームの補間 --- */
     if (st.zoomTimer > 0) { st.zoomTimer--; if (st.zoomTimer === 0) st.zoomTarget = 1; }
@@ -8892,6 +9549,7 @@ G.scenes.stage = (function () {
     switch (st.phase) {
       case 'intro':    updateIntro(); break;
       case 'play':     updatePlay(); break;
+      case 'midboss':  updateMidBoss(); break;
       case 'door':     updateDoor(); break;
       case 'bossin':   updateBossIn(); break;
       case 'boss':     updateBoss(); break;
@@ -8924,6 +9582,8 @@ G.scenes.stage = (function () {
       U.sweep(st.enemies); U.sweep(st.shots); U.sweep(st.hazards); U.sweep(st.items);
     }
 
+    if (st.bigMsg) { st.bigMsg.t++; if (st.bigMsg.t > st.bigMsg.max) st.bigMsg = null; }
+
     // G.fx.update() はメインループ側で毎ステップ呼ばれるのでここでは呼ばない
     updateCamera(false);
   }
@@ -8950,6 +9610,7 @@ G.scenes.stage = (function () {
     for (i = 0; i < st.items.length; i++) st.items[i].draw(camX, camY);
     for (i = 0; i < st.enemies.length; i++) st.enemies[i].draw(camX, camY);
     if (st.boss) st.boss.draw(camX, camY);
+    if (st.midBoss) st.midBoss.draw(camX, camY);
     st.player.draw(camX, camY);
     for (i = 0; i < st.hazards.length; i++) st.hazards[i].draw(camX, camY);
     for (i = 0; i < st.shots.length; i++) st.shots[i].draw(camX, camY);
@@ -8968,6 +9629,7 @@ G.scenes.stage = (function () {
     if (st.phase !== 'gameover') {
       G.hud.drawStage(st);
       if (st.boss && (st.phase === 'boss' || st.phase === 'dying')) G.hud.drawBoss(st.boss);
+      if (st.midBoss) G.hud.drawBoss(st.midBoss);
     }
     G.input.drawControls(st.phase === 'pause' ? 0.25 : 1);
 
@@ -9078,6 +9740,34 @@ G.scenes.stage = (function () {
       gfx.text(b.name, gfx.W / 2 + slide, gfx.H * 0.30 + 8,
         { align: 'center', scale: 3, color: b.col.light, outline: '#101018' });
       ctx.restore();
+    }
+
+    /* --- 中ボスの名前（ボスより控えめに、短く出す） --- */
+    if (st.phase === 'midboss' && st.midBoss && st.midBoss.state === 'pose') {
+      var mb2 = st.midBoss;
+      var ka = Math.min(1, mb2.actT / 8);
+      var ctx2 = gfx.ctx;
+      ctx2.save(); ctx2.globalAlpha = ka;
+      gfx.rect(0, gfx.H * 0.24, gfx.W, 18, '#101018');
+      gfx.rect(0, gfx.H * 0.24, gfx.W, 1, mb2.col.light);
+      gfx.rect(0, gfx.H * 0.24 + 17, gfx.W, 1, mb2.col.light);
+      gfx.text(mb2.name, gfx.W / 2, gfx.H * 0.24 + 5,
+        { align: 'center', scale: 1, color: mb2.col.light, shadow: '#101018' });
+      ctx2.restore();
+    }
+
+    /* --- 大きなメッセージ（ラスボスの形態変化など） --- */
+    if (st.bigMsg) {
+      var bm = st.bigMsg;
+      var ki = Math.min(1, bm.t / 12);
+      var fade = bm.t > bm.max - 20 ? (bm.max - bm.t) / 20 : 1;
+      var ctx3 = gfx.ctx;
+      ctx3.save();
+      ctx3.globalAlpha = Math.max(0, fade);
+      var sc = 3 + (1 - U.ease.outCubic(ki)) * 4;
+      gfx.text(bm.text, gfx.W / 2, gfx.H * 0.34,
+        { align: 'center', scale: sc, color: bm.color, outline: '#101018' });
+      ctx3.restore();
     }
 
     /* --- ボス撃破後の「STAGE CLEAR」 --- */

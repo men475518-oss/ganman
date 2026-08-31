@@ -467,6 +467,27 @@ G.sprites = (function () {
     'KKKKKKKKKKKKKK'
   ];
 
+
+  /* --- 中ボスが放つ小型蜂。ふらふら追ってくる --- */
+  var DRONE1 = [
+    '..KK....KK..',
+    '.KWWK..KWWK.',
+    '..KYYYYYYK..',
+    '.KYKYYKYYRK.',
+    '.KYYYYYYYRK.',
+    '..KYKYYKYK..',
+    '...KKKKKK...'
+  ];
+  var DRONE2 = [
+    '............',
+    'KKWWKKKKWWKK',
+    '..KYYYYYYK..',
+    '.KYKYYKYYRK.',
+    '.KYYYYYYYRK.',
+    '..KYKYYKYK..',
+    '...KKKKKK...'
+  ];
+
   /* ======================================================================
      アイテムのドット絵
      ====================================================================== */
@@ -552,6 +573,35 @@ G.sprites = (function () {
   ];
 
   /* ======================================================================
+     プレイヤーの全フレームを、指定パレットで焼いて1セット返す。
+
+     色だけ差し替えれば「主人公の色違い」がそのまま作れるので、
+     ラスボス（主人公の姿を模した敵）はこれを使って描いている。
+     ====================================================================== */
+  function makePlayerSet(pal) {
+    var p = {};
+    p.idle  = S(assemble(HEAD, TORSO, LEGS.idle), pal);
+    p.run   = [ S(assemble(HEAD, TORSO, LEGS.run1), pal),
+                S(assemble(HEAD, TORSO, LEGS.run2), pal),
+                S(assemble(HEAD, TORSO, LEGS.run3), pal) ];
+    p.jump  = S(assemble(HEAD, TORSO, LEGS.jump), pal);
+    p.hurt  = S(assemble(HEAD_HURT, TORSO, LEGS.jump), pal);
+    p.climb = [ S(assemble(HEAD, TORSO_CLIMB, LEGS.climb1), pal),
+                S(assemble(HEAD, TORSO_CLIMB, LEGS.climb2), pal) ];
+    p.buster = S(BUSTER, pal);
+    p.armUp  = S(ARM_UP, pal);
+    p.W = p.idle.w; p.H = p.idle.h;
+    return p;
+  }
+
+  /* 名前付きで色違いセットを取り出す（一度焼いたら使い回す） */
+  var paletteCache = {};
+  function playerSet(name, pal) {
+    if (!paletteCache[name]) paletteCache[name] = makePlayerSet(pal);
+    return paletteCache[name];
+  }
+
+  /* ======================================================================
      起動時に全部焼く
      ====================================================================== */
   var built = false;
@@ -562,18 +612,7 @@ G.sprites = (function () {
     built = true;
 
     /* --- プレイヤー --- */
-    var p = out.player;
-    p.idle  = S(assemble(HEAD, TORSO, LEGS.idle));
-    p.run   = [ S(assemble(HEAD, TORSO, LEGS.run1)),
-                S(assemble(HEAD, TORSO, LEGS.run2)),
-                S(assemble(HEAD, TORSO, LEGS.run3)) ];
-    p.jump  = S(assemble(HEAD, TORSO, LEGS.jump));
-    p.hurt  = S(assemble(HEAD_HURT, TORSO, LEGS.jump));
-    p.climb = [ S(assemble(HEAD, TORSO_CLIMB, LEGS.climb1)),
-                S(assemble(HEAD, TORSO_CLIMB, LEGS.climb2)) ];
-    p.buster = S(BUSTER);
-    p.armUp  = S(ARM_UP);
-    p.W = p.idle.w; p.H = p.idle.h;
+    out.player = makePlayerSet(PPAL);
 
     /* --- 敵 --- */
     var e = out.enemy;
@@ -589,6 +628,7 @@ G.sprites = (function () {
     e.split  = [ S(SPLIT_BIG, EPAL), S(SPLIT_SMALL, EPAL) ];
     e.riser  = [ S(RISER, EPAL) ];
     e.vent   = [ S(VENT, EPAL) ];
+    e.drone  = [ S(DRONE1, EPAL), S(DRONE2, EPAL) ];
 
     /* --- アイテム --- */
     var it = out.item;
@@ -676,6 +716,7 @@ G.sprites = (function () {
     get enemy() { return out.enemy; },
     get item() { return out.item; },
     S: S, PPAL: PPAL, EPAL: EPAL, IPAL: IPAL,
-    chassis: chassis
+    chassis: chassis,
+    makePlayerSet: makePlayerSet, playerSet: playerSet
   };
 })();

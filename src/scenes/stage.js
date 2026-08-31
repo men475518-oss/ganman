@@ -47,6 +47,9 @@ G.scenes.stage = (function () {
       t: 0,
 
       checkpoint: null,       // 中間ポイントを通過したら入る
+      midBoss: null,          // 中ボス（戦闘中だけ入る）
+      midBossDone: false,
+      lockArena: null,        // カメラを固定する部屋（中ボス戦で使う）
       tanks: G.game.tanks || 0,
       deathT: 0,
       clearT: 0,
@@ -54,7 +57,8 @@ G.scenes.stage = (function () {
       pausedFrom: 'play',
       doorOpen: 0,
       bossNameT: 0,
-      silence: 0             // 撃破後の「短い無音」用
+      silence: 0,            // 撃破後の「短い無音」用
+      bigMsg: null           // 画面中央に大きく出すメッセージ
     };
 
     // プレイヤーに引き継ぎデータを反映
@@ -101,6 +105,37 @@ G.scenes.stage = (function () {
     st.requestZoom = function (z, frames) {
       st.zoomTarget = z; st.zoomTimer = frames;
     };
+    /* 画面中央に大きく文字を出す（ラスボスの形態変化などで使う） */
+    st.showBigMessage = function (text, color, frames) {
+      st.bigMsg = { text: text, color: color || '#FCFCFC', t: 0, max: frames || 120 };
+    };
+
+    /* --- 中ボス --- */
+    st.onMidBossDying = function () {
+      // 撃破演出中に残り弾で死なないよう、敵の攻撃を消す
+      for (var i = 0; i < st.shots.length; i++) {
+        if (st.shots[i].team === 'enemy') st.shots[i].dead = true;
+      }
+      for (var j = 0; j < st.hazards.length; j++) st.hazards[j].dead = true;
+      st.player.invul = 99999;
+      G.music.fadeOut(0.3);
+    };
+    st.onMidBossDefeated = function () {
+      st.midBossDone = true;
+      st.midBoss = null;
+      st.lockArena = null;
+      st.phase = 'play';
+      st.player.invul = 60;
+      st.player.controlEnabled = true;
+      // ごほうび（回復と武器エネルギー）
+      var mb = st.data.midBoss;
+      var cx = (mb.arena.x0 + mb.arena.x1) / 2;
+      st.items.push(new G.items.Item('hpBig', cx - 14, mb.arena.floorY - 20, { permanent: true }));
+      st.items.push(new G.items.Item('wpBig', cx + 14, mb.arena.floorY - 20, { permanent: true }));
+      G.fx.floatText('CLEAR!', cx, mb.arena.floorY - 60, '#F8D878', 2);
+      G.music.play(st.theme.bgm, { restart: true });
+    };
+
     st.onBossDying = function () {
       st.phase = 'dying'; st.phaseT = 0;
       // 撃破演出中に残り弾で死ぬのは理不尽なので、敵の攻撃を全部消して無敵にする
@@ -128,8 +163,9 @@ G.scenes.stage = (function () {
 
     var tx, ty;
 
-    if (st.phase === 'door' || st.phase === 'bossin' || st.phase === 'boss' ||
-        st.phase === 'dying' || st.phase === 'clear') {
+    var bossPhase = (st.phase === 'door' || st.phase === 'bossin' || st.phase === 'boss' ||
+                     st.phase === 'dying' || st.phase === 'clear');
+    if (bossPhase || st.lockArena) {
       /* --- ボス部屋のカメラ ---
          アリーナ幅(432px)は画面幅(端末により256〜400px)より広いので、
          中央固定にするとプレイヤーが端に行ったとき画面外に消えてしまう。
@@ -139,9 +175,11 @@ G.scenes.stage = (function () {
            ③ アリーナから大きく外れない（壁を少し見せる程度の余裕は持つ）
          縦は固定のまま。床を画面の64%の高さに置くことで、
          戦闘が仮想パッドより上で行われ、指でキャラが隠れない。        */
-      var ar = st.data.boss.arena;
+      var ar = bossPhase ? st.data.boss.arena : st.lockArena;
+      var foe = (st.boss && !st.boss.dead) ? st.boss
+              : ((st.midBoss && !st.midBoss.dead) ? st.midBoss : null);
       var pcx = pl.cx();
-      var bcx = (st.boss && !st.boss.dead) ? st.boss.cx() : pcx;
+      var bcx = foe ? foe.cx() : pcx;
 
       // ① 自機寄りの中間点を見る（ボスもなるべく画面に残す）
       tx = (pcx + (bcx - pcx) * 0.35) - viewW / 2;
@@ -379,12 +417,58 @@ G.scenes.stage = (function () {
       G.fx.ring(cp.x, cp.y - 40, 3, 34, 18, '#F8D878');
     }
 
+    // 中ボスの部屋に踏み込んだら戦闘開始
+    var mb = st.data.midBoss;
+    if (mb && !st.midBossDone && !st.midBoss && pl.cx() > mb.triggerX) {
+      startMidBoss();
+      return;
+    }
+
     // ボス部屋の手前まで来たら扉のシーケンスへ
     if (pl.cx() > st.data.boss.triggerX && pl.onGround) {
       st.phase = 'door'; st.phaseT = 0;
       pl.controlEnabled = false;
       pl.cancelCharge();
       A.sfx.doorOpen();
+    }
+  }
+
+  /* --- 中ボス戦の開始 --- */
+  function startMidBoss() {
+    var mb = st.data.midBoss;
+    st.phase = 'midboss';
+    st.phaseT = 0;
+    st.lockArena = mb.arena;
+    var b = BS.create('hornet', mb.spawnX, mb.spawnY);
+    // 部屋の端に張り付かないよう、内側に寄せた範囲で動かす
+    b.arena = { x0: mb.arena.x0 + 18, x1: mb.arena.x1 - 18, floorY: mb.arena.floorY };
+    st.midBoss = b;
+    st.player.cancelCharge();
+    G.music.fadeOut(0.25);
+    A.sfx.bossWarn();
+    G.fx.flash('#F8D878', 6, 0.35);
+    G.fx.shake(2, 12);
+  }
+
+  /* --- 中ボス戦 --- */
+  function updateMidBoss() {
+    var pl = st.player;
+    st.phaseT++;
+    pl.prevY = pl.y;
+    pl.update(st);
+
+    // 部屋の外へは出られない
+    var ar = st.data.midBoss.arena;
+    if (pl.x < ar.x0 + 2) { pl.x = ar.x0 + 2; if (pl.vx < 0) pl.vx = 0; }
+    if (pl.x + pl.w > ar.x1 - 2) { pl.x = ar.x1 - 2 - pl.w; if (pl.vx > 0) pl.vx = 0; }
+
+    var b = st.midBoss;
+    if (!b) return;
+    b.update(st);
+    // 登場ポーズが終わったら戦闘開始（ボスより短め）
+    if (b.state === 'pose' && b.actT > 44 && !b.active) {
+      b.active = true;
+      G.music.play('boss');
     }
   }
 
@@ -580,6 +664,10 @@ G.scenes.stage = (function () {
     st.spawners.forEach(function (s) { s.entity = null; s.armed = true; });
     st.items = st.items.filter(function (i) { return i.permanent && !i.dead; });
 
+    // 中ボス戦中に死んだら、部屋の手前から再挑戦
+    st.midBoss = null;
+    st.lockArena = null;
+
     // ボス戦中に死んだらボスも作り直し
     if (st.boss) {
       st.boss = null;
@@ -714,7 +802,7 @@ G.scenes.stage = (function () {
     /* --- ポーズの開閉 --- */
     if (st.phase === 'pause') { updatePause(); return; }
     if (inp.pressed.pause &&
-        (st.phase === 'play' || st.phase === 'boss')) { openPause(); return; }
+        (st.phase === 'play' || st.phase === 'boss' || st.phase === 'midboss')) { openPause(); return; }
 
     /* --- ズームの補間 --- */
     if (st.zoomTimer > 0) { st.zoomTimer--; if (st.zoomTimer === 0) st.zoomTarget = 1; }
@@ -729,6 +817,7 @@ G.scenes.stage = (function () {
     switch (st.phase) {
       case 'intro':    updateIntro(); break;
       case 'play':     updatePlay(); break;
+      case 'midboss':  updateMidBoss(); break;
       case 'door':     updateDoor(); break;
       case 'bossin':   updateBossIn(); break;
       case 'boss':     updateBoss(); break;
@@ -761,6 +850,8 @@ G.scenes.stage = (function () {
       U.sweep(st.enemies); U.sweep(st.shots); U.sweep(st.hazards); U.sweep(st.items);
     }
 
+    if (st.bigMsg) { st.bigMsg.t++; if (st.bigMsg.t > st.bigMsg.max) st.bigMsg = null; }
+
     // G.fx.update() はメインループ側で毎ステップ呼ばれるのでここでは呼ばない
     updateCamera(false);
   }
@@ -787,6 +878,7 @@ G.scenes.stage = (function () {
     for (i = 0; i < st.items.length; i++) st.items[i].draw(camX, camY);
     for (i = 0; i < st.enemies.length; i++) st.enemies[i].draw(camX, camY);
     if (st.boss) st.boss.draw(camX, camY);
+    if (st.midBoss) st.midBoss.draw(camX, camY);
     st.player.draw(camX, camY);
     for (i = 0; i < st.hazards.length; i++) st.hazards[i].draw(camX, camY);
     for (i = 0; i < st.shots.length; i++) st.shots[i].draw(camX, camY);
@@ -805,6 +897,7 @@ G.scenes.stage = (function () {
     if (st.phase !== 'gameover') {
       G.hud.drawStage(st);
       if (st.boss && (st.phase === 'boss' || st.phase === 'dying')) G.hud.drawBoss(st.boss);
+      if (st.midBoss) G.hud.drawBoss(st.midBoss);
     }
     G.input.drawControls(st.phase === 'pause' ? 0.25 : 1);
 
@@ -915,6 +1008,34 @@ G.scenes.stage = (function () {
       gfx.text(b.name, gfx.W / 2 + slide, gfx.H * 0.30 + 8,
         { align: 'center', scale: 3, color: b.col.light, outline: '#101018' });
       ctx.restore();
+    }
+
+    /* --- 中ボスの名前（ボスより控えめに、短く出す） --- */
+    if (st.phase === 'midboss' && st.midBoss && st.midBoss.state === 'pose') {
+      var mb2 = st.midBoss;
+      var ka = Math.min(1, mb2.actT / 8);
+      var ctx2 = gfx.ctx;
+      ctx2.save(); ctx2.globalAlpha = ka;
+      gfx.rect(0, gfx.H * 0.24, gfx.W, 18, '#101018');
+      gfx.rect(0, gfx.H * 0.24, gfx.W, 1, mb2.col.light);
+      gfx.rect(0, gfx.H * 0.24 + 17, gfx.W, 1, mb2.col.light);
+      gfx.text(mb2.name, gfx.W / 2, gfx.H * 0.24 + 5,
+        { align: 'center', scale: 1, color: mb2.col.light, shadow: '#101018' });
+      ctx2.restore();
+    }
+
+    /* --- 大きなメッセージ（ラスボスの形態変化など） --- */
+    if (st.bigMsg) {
+      var bm = st.bigMsg;
+      var ki = Math.min(1, bm.t / 12);
+      var fade = bm.t > bm.max - 20 ? (bm.max - bm.t) / 20 : 1;
+      var ctx3 = gfx.ctx;
+      ctx3.save();
+      ctx3.globalAlpha = Math.max(0, fade);
+      var sc = 3 + (1 - U.ease.outCubic(ki)) * 4;
+      gfx.text(bm.text, gfx.W / 2, gfx.H * 0.34,
+        { align: 'center', scale: sc, color: bm.color, outline: '#101018' });
+      ctx3.restore();
     }
 
     /* --- ボス撃破後の「STAGE CLEAR」 --- */

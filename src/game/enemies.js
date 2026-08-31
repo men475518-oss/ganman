@@ -769,13 +769,42 @@ G.enemies = (function () {
     gfx.rect(x + this.w / 2 - 3, Math.round(this.topY - 40 - camY), 2, this.y - this.topY + 42, '#7C7C8C');
   };
 
+
+  /* ======================================================================
+     ⑮ 小型蜂：中ボスが放つ子機。柔らかいがふらふら追ってくる
+     ====================================================================== */
+  var Drone = extend(function (x, y) {
+    Enemy.call(this, x, y, { hp: 1, contactDmg: 3, dropChance: 0.12 });
+    this.w = 12; this.h = 7;
+    this.ttl = 460;                 // 長く残りすぎないよう寿命を持たせる
+  });
+  Drone.prototype.update = function (st) {
+    if (this.preUpdate()) return;
+    if (--this.ttl <= 0) { this.dead = true; return; }
+    var pl = st.player;
+    var a = Math.atan2(pl.cy() - this.cy(), pl.cx() - this.cx());
+    this.vx = U.lerp(this.vx, Math.cos(a) * 1.4, 0.035);
+    this.vy = U.lerp(this.vy, Math.sin(a) * 1.1, 0.035);
+    this.x += this.vx;
+    this.y += this.vy + Math.sin(this.age * 0.22) * 0.45;
+    this.face = this.vx < 0 ? -1 : 1;
+    // 壁にぶつかったら跳ね返る
+    if (TL.boxSolid(this.x, this.y, this.w, this.h)) {
+      this.x -= this.vx; this.y -= this.vy;
+      this.vx *= -0.5; this.vy *= -0.5;
+    }
+  };
+  Drone.prototype.draw = function (camX, camY) {
+    this.blit(G.sprites.enemy.drone[Math.floor(this.age / 3) % 2], camX, camY);
+  };
+
   /* ======================================================================
      生成のための表
      ====================================================================== */
   var TYPES = {
     met: Met, fly: Flyer, turret: Turret, hop: Hopper, spike: Spiker, plat: Platform,
     joe: ShieldJoe, bat: Bat, crawl: Crawler, tank: Tank,
-    split: Splitter, riser: Riser, vent: Vent, crusher: Crusher
+    split: Splitter, riser: Riser, vent: Vent, crusher: Crusher, drone: Drone
   };
 
   function create(type, x, y, opt) {
@@ -788,6 +817,6 @@ G.enemies = (function () {
     Enemy: Enemy, extend: extend, create: create, TYPES: TYPES,
     Met: Met, Flyer: Flyer, Turret: Turret, Hopper: Hopper, Spiker: Spiker, Platform: Platform,
     ShieldJoe: ShieldJoe, Bat: Bat, Crawler: Crawler, Tank: Tank,
-    Splitter: Splitter, Riser: Riser, Vent: Vent, Crusher: Crusher
+    Splitter: Splitter, Riser: Riser, Vent: Vent, Crusher: Crusher, Drone: Drone
   };
 })();

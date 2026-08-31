@@ -7,15 +7,21 @@ module.exports = async ({ page, waitScene }) => {
     const res = {};
     ['cut','elec','ice','fire','bomb','guts'].forEach(k => {
       const d = G.stages.build(k);
-      // ボス前の休憩通路は意図的に敵を置かない区間なので、
-      // カーブの計測からは外し、「敵が配置される区間」を3等分して見る
+      // 中ボス部屋とボス前の休憩通路は、意図的に敵を置かない区間。
+      // そのまま数えると中盤の密度が薄く見えるので、
+      // 中ボス部屋のぶんだけ座標を詰めてから3等分する。
+      const mb = d.midBoss;
+      const roomW = mb ? (mb.arena.x1 - mb.arena.x0) : 0;
+      const adj = (x) => (mb && x > mb.arena.x1) ? x - roomW : x;
       let last = 0;
-      d.spawns.forEach(sp => { if (TIER[sp.type] !== undefined) last = Math.max(last, sp.x); });
+      d.spawns.forEach(sp => {
+        if (TIER[sp.type] !== undefined) last = Math.max(last, adj(sp.x));
+      });
       const span = Math.max(1, last);
       const seg = [[],[],[]];
       d.spawns.forEach(sp => {
         if (TIER[sp.type] === undefined) return;      // 設置物は除く
-        const p = sp.x / span;
+        const p = adj(sp.x) / span;
         seg[p < 0.34 ? 0 : (p < 0.67 ? 1 : 2)].push(sp.type);
       });
       res[k] = seg.map(list => {

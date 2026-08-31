@@ -22,6 +22,7 @@ module.exports = async ({ page, report, waitScene, waitPhase }) => {
 
   await page.evaluate(() => {
     const s = G.scenes.stage.state;
+    s.midBossDone = true;   // 中ボスは済ませた扱いにして扉まで直行する
     s.player.x = s.data.boss.triggerX - 30;
     s.player.y = s.data.boss.arena.floorY - s.player.h;
   });

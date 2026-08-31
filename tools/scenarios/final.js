@@ -41,6 +41,7 @@ module.exports = async ({ page, waitScene, waitPhase, waitStage, report }) => {
   // ボス部屋へ
   await page.evaluate(() => {
     const s = G.scenes.stage.state;
+    s.midBossDone = true;   // 中ボスは済ませた扱いにして扉まで直行する
     s.player.x = s.data.boss.triggerX - 30;
     s.player.y = s.data.boss.arena.floorY - s.player.h;
   });
@@ -62,24 +63,27 @@ module.exports = async ({ page, waitScene, waitPhase, waitStage, report }) => {
   await page.screenshot({ path: DIR + 'f2-boss1.png' });
 
   // 各形態を弱点武器で削って、形態変化を確認する
-  for (let ph = 0; ph < 4; ph++) {
+  for (let ph = 0; ph < 5; ph++) {
     // 形態変化の演出中は無敵なので、終わるまで待つ
     await page.waitForFunction(
       () => { const b = G.scenes.stage.state.boss; return !b || b.dead || b.transition === 0; },
       { timeout: 10000 });
     const r = await page.evaluate(() => {
       const s = G.scenes.stage.state, b = s.boss;
-      const weak = b.weakness, startPhase = b.phase;
+      const weak = b.weakness || 'cutter';   // 影には弱点が無いので手持ちの武器で
+      const startPhase = b.phase;
       let hits = 0;
       while (b.phase === startPhase && b.hp > 0 && b.transition === 0 && hits < 40) {
         b.invul = 0;
-        b.damage(1, weak, s, { level: 0 });
+        b.damage(1, weak, s, { level: 2 });
         hits++;
       }
-      return { hits, weak, hp: b.hp, phase: b.phase, newWeak: b.weakness, dead: b.hp <= 0 };
+      return { hits, weak, hp: b.hp, phase: b.phase, newWeak: b.weakness,
+               dead: b.hp <= 0, name: b.name, shadow: b.isShadow() };
     });
-    console.log(`  形態${ph+1}: 弱点=${r.weak} で ${r.hits}発 -> 残りHP${r.hp}` +
-                (r.dead ? ' 撃破' : ` / 次は形態${r.phase+1} 弱点=${r.newWeak}`));
+    console.log(`  形態${ph+1}: 弱点=${r.weak || 'なし'} で ${r.hits}発 -> 残りHP${r.hp}` +
+                (r.dead ? ' 撃破' : ` / 次は形態${r.phase+1} 「${r.name}」 弱点=${r.newWeak || 'なし'}` +
+                                    (r.shadow ? ' ★影の形態' : '')));
     if (r.dead) break;
   }
   await page.screenshot({ path: DIR + 'f2-boss3.png' });
